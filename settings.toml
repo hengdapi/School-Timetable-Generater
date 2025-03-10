@@ -1,0 +1,83 @@
+morning_class_num = 4
+afternoon_class_num = 2
+show_teachers = true
+transpose = false
+subjects_info = [
+    "语文",
+    "数学",
+    "英语",
+    "道德与法治",
+    "科学",
+    "体育",
+    "体育（足球）",
+    "体育（篮球）",
+    "体育（跆拳道）",
+    "体育（舞蹈）",
+    "体育（足球)",
+    "音乐",
+    "美术",
+    "信息科技",
+    "班队会",
+    "校本阅读(0.5)",
+    "地方与阅读",
+    "综合",
+    "地方",
+    "校本人工智能(0.5)",
+    "地方(0.5)",
+    "心理(0.5)",
+    "劳动与综合",
+    "劳动",
+    "数学活动",
+    "语言活动",
+]
+
+[rules]
+must_include = [
+    "语文",
+]
+priority = "[{\"subject\":\"语文\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"数学\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"英语\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"道德与法治\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"科学\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"体育\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"体育（足球）\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"体育（篮球）\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"体育（跆拳道）\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"体育（舞蹈）\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"体育（足球)\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"音乐\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"美术\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"信息科技\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"班队会\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"地方与阅读\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"综合\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"地方\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"劳动与综合\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"劳动\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"数学活动\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null},{\"subject\":\"语言活动\",\"priority\":null,\"1\":null,\"2\":null,\"3\":null,\"4\":null,\"5\":null,\"6\":null,\"7\":null,\"8\":null,\"9\":null,\"10\":null,\"11\":null,\"12\":null,\"13\":null,\"14\":null,\"15\":null,\"16\":null,\"17\":null,\"18\":null,\"19\":null,\"20\":null,\"21\":null,\"22\":null,\"23\":null,\"24\":null,\"25\":null,\"26\":null,\"27\":null,\"28\":null,\"29\":null,\"30\":null}]"
+
+[[table_style]]
+"星期" = "星期一"
+"上午第1节" = "课程信息\n（教师姓名）"
+"上午第2节" = "课程信息\n（教师姓名）"
+"上午第3节" = "课程信息\n（教师姓名）"
+"上午第4节" = "课程信息\n（教师姓名）"
+"下午第1节" = "课程信息\n（教师姓名）"
+"下午第2节" = "课程信息\n（教师姓名）"
+
+[[table_style]]
+"星期" = "星期二"
+"上午第1节" = "课程信息\n（教师姓名）"
+"上午第2节" = "课程信息\n（教师姓名）"
+"上午第3节" = "课程信息\n（教师姓名）"
+"上午第4节" = "课程信息\n（教师姓名）"
+"下午第1节" = "课程信息\n（教师姓名）"
+"下午第2节" = "课程信息\n（教师姓名）"
+
+[[table_style]]
+"星期" = "星期三"
+"上午第1节" = "课程信息\n（教师姓名）"
+"上午第2节" = "课程信息\n（教师姓名）"
+"上午第3节" = "课程信息\n（教师姓名）"
+"上午第4节" = "课程信息\n（教师姓名）"
+"下午第1节" = "课程信息\n（教师姓名）"
+"下午第2节" = "课程信息\n（教师姓名）"
+
+[[table_style]]
+"星期" = "星期四"
+"上午第1节" = "课程信息\n（教师姓名）"
+"上午第2节" = "课程信息\n（教师姓名）"
+"上午第3节" = "课程信息\n（教师姓名）"
+"上午第4节" = "课程信息\n（教师姓名）"
+"下午第1节" = "课程信息\n（教师姓名）"
+"下午第2节" = "课程信息\n（教师姓名）"
+
+[[table_style]]
+"星期" = "星期五"
+"上午第1节" = "课程信息\n（教师姓名）"
+"上午第2节" = "课程信息\n（教师姓名）"
+"上午第3节" = "课程信息\n（教师姓名）"
+"上午第4节" = "课程信息\n（教师姓名）"
+"下午第1节" = "课程信息\n（教师姓名）"
+"下午第2节" = "课程信息\n（教师姓名）"
