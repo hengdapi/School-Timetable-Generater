@@ -1,6 +1,7 @@
 ﻿import streamlit as st,menu,pandas as pd,random,copy,tomllib,zipfile,os,json
 from io import BytesIO
-from menu import generate_time
+# noinspection PyUnresolvedReferences
+from menu import generate_time,days
 class Teacher:
     def __init__(self,name):
         self.name=name
@@ -44,7 +45,16 @@ if __name__ == '__main__':
         for i in range(len(lessons)):
             dict_lessons[lessons[i]["班级"]]=lessons[i]
         pd_lessons=pd.DataFrame(lessons)
-        table_style=settings["table_style"]
+        table_style=[]
+        info="课程信息"
+        if settings["show_teachers"]:
+            info+="\n（教师姓名）"
+        for day in range(5):
+            table_style.append({"星期":days[day]})
+            for time in range(1,settings["morning_class_num"]+1):
+                table_style[day].update({f"上午第{time}节":info})
+            for time in range(1,settings["afternoon_class_num"]+1):
+                table_style[day].update({f"下午第{time}节":info})
         subjects=settings["subjects_info"]
 
     class_tables={}
@@ -119,7 +129,7 @@ if __name__ == '__main__':
             else:
                 table=pd.DataFrame(table).transpose()
                 # st.table(table)
-                st.table(table)
+                st.dataframe(table)
             class_tables[class_]=table
 
         if not os.path.exists("output"):

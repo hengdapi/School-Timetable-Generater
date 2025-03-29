@@ -1,9 +1,15 @@
 import streamlit as st,menu,pandas as pd,tomllib,tomli_w,json
-from menu import generate_time
+# noinspection PyUnresolvedReferences
+from menu import generate_time,days
 menu.menu()
 
 st.title("设置")
 settings=tomllib.load(open("settings.toml","br"))
+
+def save_settings():
+    with open("settings.toml","wb") as f:
+        tomli_w.dump(settings,f)
+    st.success("设置保存成功！")
 
 grades=["一","二","三","四","五","六","七","八","九"]
 st.markdown("## 表格样式")
@@ -26,24 +32,24 @@ if settings["show_teachers"]:
     )
 else:
     info="课程信息"
-settings["table_style"]=[]
-days=["星期一","星期二","星期三","星期四","星期五"]
+
+table_style=[]
 for day in range(5):
-    settings["table_style"].append({"星期":days[day]})
+    table_style.append({"星期":days[day]})
     for i in range(1,settings["morning_class_num"]+1):
-        settings["table_style"][day][f"上午第{i}节"]=info
+        table_style[day][f"上午第{i}节"]=info
     for i in range(1,settings["afternoon_class_num"]+1):
-        settings["table_style"][day][f"下午第{i}节"]=info
+        table_style[day][f"下午第{i}节"]=info
 
 st.subheader("预览")
 st.markdown("##### 一年级1班课程表")
-table=pd.DataFrame(settings["table_style"])
+table=pd.DataFrame(table_style)
 if not settings["transpose"]:
     st.dataframe(table.transpose())
 else:
     table.columns = ['星期']+[f"上午第{i}节" for i in range(1,settings["morning_class_num"]+1)]+[f"下午第{i}节" for i in range(1,settings["afternoon_class_num"]+1)]
     st.dataframe(table,hide_index=True)
-
+save_settings()
 st.divider()
 
 
@@ -79,27 +85,10 @@ def save_subjects():
         subjects_table_keys.append(subject+" - 任课老师")
     settings["subjects_info"]=new_subjects
 
-# st.subheader("学科信息")
-# subjects_file_info=[user_info.keys()[i][:-5] for i in range(1,len(user_info.keys()),2)]
-# st.dataframe(pd.DataFrame(subjects_file_info).transpose(),hide_index=True)
-# col1,col2=st.columns([1.2,8])
-# with col1:
-#     if st.button("添加学科"):
-#         settings["subjects_info"].append("")
-#         save_subjects()
-#         st.rerun()
-# with col2:
-#     if st.button("删除学科"):
-#         delete_subject()
-
-def save_lessons():
-    settings["lessons_info"]="["+",".join(str(lessons_info.to_json(orient="records",lines=True,force_ascii=False)).split("\n"))[0:-1]+"]"
-    st.rerun()
-# st.subheader("课程信息")
 lessons_info=st.data_editor(user_info,hide_index=True)
-if st.button("保存课程信息"):
-    save_lessons()
-    # save_subjects()
+# if st.button("保存课程信息"):
+settings["lessons_info"]=lessons_info.to_json(orient="records",lines=False,force_ascii=False)
+save_settings()
 st.divider()
 
 st.markdown("## 生成规则")
@@ -112,15 +101,12 @@ for lesson in settings["rules"]["must_include"]:
         settings["rules"]["must_include"].remove(lesson)
 settings["rules"]["must_include"]=st.multiselect("每天必须包含的课程",subjects,default=settings["rules"]["must_include"])
 
-priority=[]
+priority=json.loads(settings["rules"]["priority"])
 options=[]
 st.subheader("排课优先位置")
 for i in range(len(subjects)):
-    priority.append({"subject":subjects[i]})
     for day in range(5):
         for time in range(1,settings["morning_class_num"]+settings["afternoon_class_num"]+1):
-            priority[i]["priority"]=None
-            priority[i][str(day*(settings["morning_class_num"]+settings["afternoon_class_num"])+time)]=None
             if len(options)<(settings["morning_class_num"]+settings["afternoon_class_num"])*5:
                 options.append(days[day]+generate_time(time))
 columns_config={"priority":st.column_config.SelectboxColumn("学科总优先级",options=range(1,len(subjects)+1),required=True),
@@ -143,7 +129,5 @@ for line in range(len(subjects)):
     elif col_elements.count(element)>1 and not line is None:
         st.error(f"{subjects[line]}学科存在重复的优先级！")
         st.stop()
-settings["rules"]["priority"]=str(priority_table.to_json(orient="records",lines=False,force_ascii=False))
-
-with open("settings.toml","wb") as f:
-    tomli_w.dump(settings,f)
+settings["rules"]["priority"]=priority_table.to_json(orient="records",lines=False,force_ascii=False)
+save_settings()

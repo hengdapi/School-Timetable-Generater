@@ -8,6 +8,8 @@ def generate_time(lesson):
         lesson-=settings["morning_class_num"]
     return f"{time}第{lesson}节"
 
+days=["星期一","星期二","星期三","星期四","星期五"]
+
 def menu():
     st.set_page_config(page_title="课程表生成器",page_icon="https://s1.aigei.com/src/img/png/03/03220c68b52d4345a46e5a8ddbdc2946.png?imageMogr2/auto-orient/thumbnail/!282x282r/gravity/Center/crop/282x282/quality/85/%7CimageView2/2/w/282&e=2051020800&token=P7S2Xpzfz11vAkASLTkfHN7Fw-oOZBecqeJaxypL:8tjG1RFMJ9_G5C-LvLonO8GNvHQ=",layout="wide")
     st.sidebar.header("课程表生成器")
