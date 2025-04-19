@@ -22,7 +22,7 @@ def generate_time(lesson):
     return f"{time}第{lesson}节"
 
 # 定义工作日列表
-days = ["星期一", "星期二", "星期三", "星期四", "星期五"]
+days = [0,"星期一", "星期二", "星期三", "星期四", "星期五"]
 
 def menu():
     """

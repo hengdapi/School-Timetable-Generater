@@ -112,16 +112,13 @@ if __name__ == '__main__':
         # 创建课程表基础样式
         pd_lessons = pd.DataFrame(lessons)
         table_style = []
-        info = "课程信息"
-        if settings["show_teachers"]:
-            info += "\n（教师姓名）"
 
         for day in range(5):
-            table_style.append({"星期": days[day]})
+            table_style.append({"星期": days[day+1]})
             for time in range(1, settings["morning_class_num"] + 1):
-                table_style[day].update({f"上午第{time}节": info})
+                table_style[day].update({f"上午第{time}节": "info"})
             for time in range(1, settings["afternoon_class_num"] + 1):
-                table_style[day].update({f"下午第{time}节": info})
+                table_style[day].update({f"下午第{time}节": "info"})
 
         subjects = settings["subjects_info"]
         settings["rules"]["priority"] = json.loads(settings["rules"]["priority"])
@@ -171,6 +168,8 @@ if __name__ == '__main__':
                         if day and lesson:
                             add_lesson(class_, day, lesson, subject["subject"])
 
+                class_subjects
+                st.table(pd.DataFrame(table).transpose())  # debug
                 # 生成课程表
                 for day in range(1,6):
                     must_lessons = []
@@ -184,14 +183,14 @@ if __name__ == '__main__':
                             successful = add_lesson(class_, day, must_lesson, must_include, remove=False)
                         must_lessons.append(must_lesson)
 
-                    st.table(pd.DataFrame(table).transpose())  # debug
 
                     # 填充剩余课程
                     for lesson in range(1, settings["morning_class_num"] + settings["afternoon_class_num"] + 1):
-                        if lesson in must_lessons or lesson:
+                        if lesson in must_lessons or lesson=="info":
                             continue
 
                         class_subjects
+                        st.table(pd.DataFrame(table).transpose())  # debug
                         subject = random.choice(class_subjects)
 
                         # 处理0.5课时科目

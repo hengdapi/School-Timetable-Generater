@@ -137,12 +137,12 @@ options_key_map = {"[0, 0]": None, False: np.False_, True: np.True_}
 # 生成排课优先位置选项
 st.subheader("排课优先位置")
 for i in range(len(subjects)):
-    for day in range(5):
+    for day in range(1,6):
         for time in range(1, settings["morning_class_num"] + settings["afternoon_class_num"] + 1):
             if len(options) < (settings["morning_class_num"] + settings["afternoon_class_num"]) * 5:
                 options.append(days[day] + generate_time(time))
-                options_value_map[options[-1]] = str([day+1, time])
-                options_key_map[str([day+1, time])] = options[-1]
+                options_value_map[options[-1]] = str([day, time])
+                options_key_map[str([day, time])] = options[-1]
 
 # 处理优先级配置
 priority = json.loads(settings["rules"]["priority"])
