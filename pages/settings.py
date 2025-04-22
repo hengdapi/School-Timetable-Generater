@@ -117,17 +117,11 @@ st.divider()
 # 生成规则设置区域
 st.markdown("## 生成规则")
 
-# 筛选非0.5课时的学科
+# 所有学科
 subjects = []
 for subject in settings["subjects_info"]:
     if not (subject.endswith("(0.5)") or subject.endswith("（0.5）")):
         subjects.append(subject)
-
-# 清理和设置每天必须包含的课程
-for lesson in settings["rules"]["must_include"]:
-    if lesson not in subjects:
-        settings["rules"]["must_include"].remove(lesson)
-settings["rules"]["must_include"] = st.multiselect("每天必须包含的课程", subjects, default=settings["rules"]["must_include"])
 
 # 初始化优先级选项
 options = []

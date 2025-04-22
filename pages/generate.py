@@ -116,9 +116,9 @@ if __name__ == '__main__':
         for day in range(5):
             table_style.append({"星期": days[day+1]})
             for time in range(1, settings["morning_class_num"] + 1):
-                table_style[day].update({f"上午第{time}节": "info"})
+                table_style[day].update({f"上午第{time}节": None})
             for time in range(1, settings["afternoon_class_num"] + 1):
-                table_style[day].update({f"下午第{time}节": "info"})
+                table_style[day].update({f"下午第{time}节": None})
 
         subjects = settings["subjects_info"]
         settings["rules"]["priority"] = json.loads(settings["rules"]["priority"])
@@ -141,15 +141,13 @@ if __name__ == '__main__':
                 table = copy.deepcopy(table_style)
                 class_subjects = []
                 special_subjects = []
+                already_added = []
 
                 # 处理课程信息
                 for subject in subjects:
                     if not dict_lessons[class_][subject + " - 课时"] is None:
                         if subject.endswith("(0.5)") or subject.endswith("（0.5）"):
                             special_subjects.append(subject)
-                        elif subject in settings["rules"]["must_include"]:
-                            for i in range(int(float(dict_lessons[class_][subject + " - 课时"])) - 5):
-                                class_subjects.append(subject)
                         else:
                             for i in range(int(float(dict_lessons[class_][subject + " - 课时"]))):
                                 class_subjects.append(subject)
@@ -166,27 +164,15 @@ if __name__ == '__main__':
                         day = eval(subject[str(priority)])[0]
                         lesson = eval(subject[str(priority)])[1]
                         if day and lesson:
-                            add_lesson(class_, day, lesson, subject["subject"])
+                            if add_lesson(class_, day, lesson, subject["subject"]):
+                                already_added.append((day,lesson))
 
-                class_subjects
-                st.table(pd.DataFrame(table).transpose())  # debug
                 # 生成课程表
                 for day in range(1,6):
-                    must_lessons = []
-
-                    # 处理每天必须包含的课程
-                    for must_include in settings["rules"]["must_include"]:
-                        must_lesson = random.choice(list(set(range(1, settings["morning_class_num"] + settings["afternoon_class_num"] + 1)) - set(must_lessons)))
-                        successful = add_lesson(class_, day, must_lesson, must_include, remove=False)
-                        while not successful:
-                            must_lesson = random.choice(list(set(range(1, settings["morning_class_num"] + settings["afternoon_class_num"] + 1)) - set(must_lessons)))
-                            successful = add_lesson(class_, day, must_lesson, must_include, remove=False)
-                        must_lessons.append(must_lesson)
-
 
                     # 填充剩余课程
                     for lesson in range(1, settings["morning_class_num"] + settings["afternoon_class_num"] + 1):
-                        if lesson in must_lessons or lesson=="info":
+                        if (day,lesson) in already_added:
                             continue
 
                         class_subjects
