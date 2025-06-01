@@ -1,5 +1,6 @@
 # 导入必要的模块：Streamlit用于构建Web应用，tomllib用于读取TOML配置文件
 import streamlit as st, tomllib
+from wr_settings import *
 
 def generate_time(lesson):
     """
@@ -9,15 +10,15 @@ def generate_time(lesson):
     :return: 时间描述（如"上午第1节"）
     """
     # 读取设置文件，获取上午课程数量
-    settings = tomllib.load(open("settings.toml", "br"))
+    cfg = load_settings()
 
     # 判断课程是在上午还是下午
-    if lesson <= settings["morning_class_num"]:
+    if lesson <= cfg.morning_class_num.value:
         time = "上午"
     else:
         time = "下午"
         # 调整课程节次为下午的相对节次
-        lesson -= settings["morning_class_num"]
+        lesson -= cfg.morning_class_num.value
 
     return f"{time}第{lesson}节"
 
