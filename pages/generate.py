@@ -1,8 +1,13 @@
 ﻿# 导入必要的模块
-import streamlit as st, menu, pandas as pd, random, copy, tomllib, zipfile, os, json
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QFrame,QVBoxLayout,QWidget
+
+import menu, pandas as pd, random, copy, tomllib, zipfile, os, json
 from io import BytesIO
-# noinspection PyUnresolvedReferences
-from menu import generate_time, days
+from style import *
+from wr_settings import *
+from qfluentwidgets import *
+from menu import *
 
 class Teacher:
     """
@@ -87,175 +92,195 @@ def add_lesson(class_: str, day: int, lesson: int, subject: str, week="all", mod
 
     return True
 
-if __name__ == '__main__':
-    # 调用菜单函数
-    menu.menu()
+class Generate(QFrame):
+    def __init__(self,parent=None):
 
-    # 设置页面标题
-    st.title("生成")
+        super().__init__(parent=parent)
+        self.setObjectName("Generate")
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(20,20,0,0)
 
-    # 读取配置文件
-    with open("settings.toml", "br") as f:
-        settings = tomllib.load(f)
+        # === 创建可滚动区域 ===
+        scroll_area=SingleDirectionScrollArea(orient=Qt.Vertical)
+        scroll_area.setStyleSheet("QScrollArea{background: transparent; border: none}")
+        scroll_area.setWidgetResizable(True)
 
-        # 检查是否已配置课程信息
-        if "lessons_info" not in settings:
-            st.error("请先在设置中配置课程信息")
-            st.stop()
+        # === 创建内容容器 ===
+        view=QWidget()
+        view.setStyleSheet("QWidget{background: transparent}")
+        layout = QVBoxLayout(view)
 
-        # 解析课程信息
-        lessons = json.loads(settings["lessons_info"])
-        dict_lessons = {}
-        for i in range(len(lessons)):
-            dict_lessons[lessons[i]["班级"]] = lessons[i]
-
-        # 创建课程表基础样式
-        pd_lessons = pd.DataFrame(lessons)
-        table_style = []
-
-        for day in range(5):
-            table_style.append({"星期": days[day+1]})
-            for time in range(1, settings["morning_class_num"] + 1):
-                table_style[day].update({f"上午第{time}节": None})
-            for time in range(1, settings["afternoon_class_num"] + 1):
-                table_style[day].update({f"下午第{time}节": None})
-
-        subjects = settings["subjects_info"]
-        settings["rules"]["priority"] = json.loads(settings["rules"]["priority"])
-
-    # 初始化教师字典
-    class_tables = {}
-    teachers = {lessons[class_][subject + " - 任课老师"]: Teacher(lessons[class_][subject + " - 任课老师"])
-                for class_ in range(len(lessons)) for subject in subjects}
-
-    # 生成课程表按钮
-    if st.button("生成课程表"):
-        for class_ in dict_lessons:
-            continue_loop = True
-            old_teachers = copy.deepcopy(teachers)
-
-            # 尝试生成课程表，如果失败则重试
-            while continue_loop:
-                continue_loop = False
-                teachers = copy.deepcopy(old_teachers)
-                table = copy.deepcopy(table_style)
-                class_subjects = []
-                special_subjects = []
-                already_added = []
-
-                # 处理课程信息
-                for subject in subjects:
-                    if not dict_lessons[class_][subject + " - 课时"] is None:
-                        if subject.endswith("(0.5)") or subject.endswith("（0.5）"):
-                            special_subjects.append(subject)
-                        else:
-                            for i in range(int(float(dict_lessons[class_][subject + " - 课时"]))):
-                                class_subjects.append(subject)
-
-                # 处理0.5课时科目
-                if len(special_subjects) > 0:
-                    class_subjects.append(special_subjects)
-
-                # 处理优先级配置
-                for subject in settings["rules"]["priority"]:
-                    if not subject["enabled"]:
-                        continue
-                    for priority in range(1, len(subject) - 2):
-                        day = eval(subject[str(priority)])[0]
-                        lesson = eval(subject[str(priority)])[1]
-                        if day and lesson:
-                            if add_lesson(class_, day, lesson, subject["subject"]):
-                                already_added.append((day,lesson))
-
-                # 生成课程表
-                for day in range(1,6):
-
-                    # 填充剩余课程
-                    for lesson in range(1, settings["morning_class_num"] + settings["afternoon_class_num"] + 1):
-                        if (day,lesson) in already_added:
-                            continue
-
-                        class_subjects
-                        st.table(pd.DataFrame(table).transpose())  # debug
-                        subject = random.choice(class_subjects)
-
-                        # 处理0.5课时科目
-                        if type(subject) == list:
-                            successful = (add_lesson(class_, day, lesson, subject[0], "single") and
-                                          add_lesson(class_, day, lesson, subject[1], "double", "append")) or \
-                                         (add_lesson(class_, day, lesson, subject[0], "double") and
-                                          add_lesson(class_, day, lesson, subject[1], "single", "append"))
-                            if successful:
-                                class_subjects.remove(subject)
-                        else:
-                            successful = add_lesson(class_, day, lesson, subject)
-
-                        # 如果添加失败，重试
-                        tries = 0
-                        while not successful:
-                            subject = random.choice(class_subjects)
-                            if type(subject) == list:
-                                successful = (add_lesson(class_, day, lesson, subject[0], "single") and
-                                              add_lesson(class_, day, lesson, subject[1], "double", "append")) or \
-                                             (add_lesson(class_, day, lesson, subject[0], "double") and
-                                              add_lesson(class_, day, lesson, subject[1], "single", "append"))
-                                if successful:
-                                    class_subjects.remove(subject)
-                            else:
-                                successful = add_lesson(class_, day, lesson, subject)
-
-                            tries += 1
-                            if tries >= 100:
-                                continue_loop = True
-                                break
-
-                        if continue_loop:
-                            break
-
-                    if continue_loop:
-                        break
-
-            # 显示课程表
-            st.subheader(class_ + "课程表")
-            if settings["transpose"]:
-                table = pd.DataFrame(table)
-                st.dataframe(table, hide_index=True)
-            else:
-                table = pd.DataFrame(table).transpose()
-                st.dataframe(table)
-
-            class_tables[class_] = table
-
-        # 保存课程表
-        if not os.path.exists("output"):
-            os.mkdir("output")
-
-        # 保存到Excel文件
-        with pd.ExcelWriter("课程表.xlsx") as writer:
-            for class_, table in class_tables.items():
-                table.to_excel(writer, sheet_name=class_, index=not settings["transpose"])
-                table.to_excel(f"output/{class_}.xlsx", index=not settings["transpose"])
-
-        # 压缩课程表文件
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, mode='w', compression=zipfile.ZIP_DEFLATED) as zipf:
-            for class_, table in class_tables.items():
-                excel_file_path = f"output/{class_}.xlsx"
-                zipf.write(excel_file_path, arcname=os.path.basename(excel_file_path))
-
-        # 提供下载按钮
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.download_button(
-                "保存在一个文件中",
-                open("课程表.xlsx", "rb"),
-                file_name="课程表.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        with col2:
-            st.download_button(
-                "保存为多个文件",
-                zip_buffer.getvalue(),
-                file_name="课程表.zip",
-                mime="application/zip"
-            )
+        self.title = title("生成",self,layout)
+        # 读取配置文件
+        self.cfg=load_settings()
+        # # 调用菜单函数
+        # menu.menu()
+        #
+        # # 设置页面标题
+        # st.title("生成")
+        #
+        # # 读取配置文件
+        # with open("settings.toml", "br") as f:
+        #     settings = tomllib.load(f)
+        #
+        #     # 检查是否已配置课程信息
+        #     if "lessons_info" not in settings:
+        #         st.error("请先在设置中配置课程信息")
+        #         st.stop()
+        #
+        #     # 解析课程信息
+        #     lessons = json.loads(settings["lessons_info"])
+        #     dict_lessons = {}
+        #     for i in range(len(lessons)):
+        #         dict_lessons[lessons[i]["班级"]] = lessons[i]
+        #
+        #     # 创建课程表基础样式
+        #     pd_lessons = pd.DataFrame(lessons)
+        #     table_style = []
+        #
+        #     for day in range(5):
+        #         table_style.append({"星期": days[day+1]})
+        #         for time in range(1, settings["morning_class_num"] + 1):
+        #             table_style[day].update({f"上午第{time}节": None})
+        #         for time in range(1, settings["afternoon_class_num"] + 1):
+        #             table_style[day].update({f"下午第{time}节": None})
+        #
+        #     subjects = settings["subjects_info"]
+        #     settings["rules"]["priority"] = json.loads(settings["rules"]["priority"])
+        #
+        # # 初始化教师字典
+        # class_tables = {}
+        # teachers = {lessons[class_][subject + " - 任课老师"]: Teacher(lessons[class_][subject + " - 任课老师"])
+        #             for class_ in range(len(lessons)) for subject in subjects}
+        #
+        # # 生成课程表按钮
+        # if st.button("生成课程表"):
+        #     for class_ in dict_lessons:
+        #         continue_loop = True
+        #         old_teachers = copy.deepcopy(teachers)
+        #
+        #         # 尝试生成课程表，如果失败则重试
+        #         while continue_loop:
+        #             continue_loop = False
+        #             teachers = copy.deepcopy(old_teachers)
+        #             table = copy.deepcopy(table_style)
+        #             class_subjects = []
+        #             special_subjects = []
+        #             already_added = []
+        #
+        #             # 处理课程信息
+        #             for subject in subjects:
+        #                 if not dict_lessons[class_][subject + " - 课时"] is None:
+        #                     if subject.endswith("(0.5)") or subject.endswith("（0.5）"):
+        #                         special_subjects.append(subject)
+        #                     else:
+        #                         for i in range(int(float(dict_lessons[class_][subject + " - 课时"]))):
+        #                             class_subjects.append(subject)
+        #
+        #             # 处理0.5课时科目
+        #             if len(special_subjects) > 0:
+        #                 class_subjects.append(special_subjects)
+        #
+        #             # 处理优先级配置
+        #             for subject in settings["rules"]["priority"]:
+        #                 if not subject["enabled"]:
+        #                     continue
+        #                 for priority in range(1, len(subject) - 2):
+        #                     day = eval(subject[str(priority)])[0]
+        #                     lesson = eval(subject[str(priority)])[1]
+        #                     if day and lesson:
+        #                         if add_lesson(class_, day, lesson, subject["subject"]):
+        #                             already_added.append((day,lesson))
+        #
+        #             # 生成课程表
+        #             for day in range(1,6):
+        #
+        #                 # 填充剩余课程
+        #                 for lesson in range(1, settings["morning_class_num"] + settings["afternoon_class_num"] + 1):
+        #                     if (day,lesson) in already_added:
+        #                         continue
+        #
+        #                     class_subjects
+        #                     st.table(pd.DataFrame(table).transpose())  # debug
+        #                     subject = random.choice(class_subjects)
+        #
+        #                     # 处理0.5课时科目
+        #                     if type(subject) == list:
+        #                         successful = (add_lesson(class_, day, lesson, subject[0], "single") and
+        #                                       add_lesson(class_, day, lesson, subject[1], "double", "append")) or \
+        #                                      (add_lesson(class_, day, lesson, subject[0], "double") and
+        #                                       add_lesson(class_, day, lesson, subject[1], "single", "append"))
+        #                         if successful:
+        #                             class_subjects.remove(subject)
+        #                     else:
+        #                         successful = add_lesson(class_, day, lesson, subject)
+        #
+        #                     # 如果添加失败，重试
+        #                     tries = 0
+        #                     while not successful:
+        #                         subject = random.choice(class_subjects)
+        #                         if type(subject) == list:
+        #                             successful = (add_lesson(class_, day, lesson, subject[0], "single") and
+        #                                           add_lesson(class_, day, lesson, subject[1], "double", "append")) or \
+        #                                          (add_lesson(class_, day, lesson, subject[0], "double") and
+        #                                           add_lesson(class_, day, lesson, subject[1], "single", "append"))
+        #                             if successful:
+        #                                 class_subjects.remove(subject)
+        #                         else:
+        #                             successful = add_lesson(class_, day, lesson, subject)
+        #
+        #                         tries += 1
+        #                         if tries >= 100:
+        #                             continue_loop = True
+        #                             break
+        #
+        #                     if continue_loop:
+        #                         break
+        #
+        #                 if continue_loop:
+        #                     break
+        #
+        #         # 显示课程表
+        #         st.subheader(class_ + "课程表")
+        #         if settings["transpose"]:
+        #             table = pd.DataFrame(table)
+        #             st.dataframe(table, hide_index=True)
+        #         else:
+        #             table = pd.DataFrame(table).transpose()
+        #             st.dataframe(table)
+        #
+        #         class_tables[class_] = table
+        #
+        #     # 保存课程表
+        #     if not os.path.exists("output"):
+        #         os.mkdir("output")
+        #
+        #     # 保存到Excel文件
+        #     with pd.ExcelWriter("课程表.xlsx") as writer:
+        #         for class_, table in class_tables.items():
+        #             table.to_excel(writer, sheet_name=class_, index=not settings["transpose"])
+        #             table.to_excel(f"output/{class_}.xlsx", index=not settings["transpose"])
+        #
+        #     # 压缩课程表文件
+        #     zip_buffer = BytesIO()
+        #     with zipfile.ZipFile(zip_buffer, mode='w', compression=zipfile.ZIP_DEFLATED) as zipf:
+        #         for class_, table in class_tables.items():
+        #             excel_file_path = f"output/{class_}.xlsx"
+        #             zipf.write(excel_file_path, arcname=os.path.basename(excel_file_path))
+        #
+        #     # 提供下载按钮
+        #     col1, col2 = st.columns([1, 3])
+        #     with col1:
+        #         st.download_button(
+        #             "保存在一个文件中",
+        #             open("课程表.xlsx", "rb"),
+        #             file_name="课程表.xlsx",
+        #             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        #         )
+        #     with col2:
+        #         st.download_button(
+        #             "保存为多个文件",
+        #             zip_buffer.getvalue(),
+        #             file_name="课程表.zip",
+        #             mime="application/zip"
+        #         )

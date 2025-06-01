@@ -5,7 +5,7 @@ from PyQt5.QtGui import QIcon,QFont
 from PyQt5.QtCore import Qt,QCoreApplication,QLocale,QSize,QEventLoop,QTimer
 from qfluentwidgets import *
 from qfluentwidgets.common.icon import FluentIcon
-from pages import home,settings
+from pages import home,settings,generate
 
 class Window(FluentWindow):
     def __init__(self):
@@ -33,6 +33,7 @@ class Window(FluentWindow):
 
         self.addSubInterface(home.Home(self),FluentIcon("Home"),"主页")
         self.addSubInterface(settings.Settings(self),FluentIcon("Setting"),"设置")
+        self.addSubInterface(generate.Generate(self),FluentIcon("Brush"),"生成")
 
 
 if __name__ == '__main__':

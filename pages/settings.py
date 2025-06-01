@@ -6,30 +6,9 @@ from PyQt5.QtWidgets import *
 from qfluentwidgets import *
 from qfluentwidgets.components.date_time.picker_base import SeparatorWidget
 
-from menu import days,generate_time
+from menu import days,generate_time,display_df_in_table
 from style import *
 from wr_settings import *
-
-
-def display_df_in_table(table_widget: TableWidget, df: pd.DataFrame):
-    df.columns=df.columns.astype(str)
-    # 设置行数和列数
-    table_widget.setRowCount(df.shape[0])
-    table_widget.setColumnCount(df.shape[1])
-
-    # 设置表头
-    table_widget.setHorizontalHeaderLabels(df.columns)
-    table_widget.setVerticalHeaderLabels([str(idx) for idx in df.index])
-
-    # 填充数据
-    for i in range(df.shape[0]):
-        for j in range(df.shape[1]):
-            if str(df.iat[i, j]) in ["nan","None"]:
-                continue
-            item = QTableWidgetItem(str(df.iat[i, j]))
-            item.setTextAlignment(Qt.AlignCenter)
-            table_widget.setItem(i, j, item)
-
 
 class Settings(QFrame):
     def update_table_preview(self):
