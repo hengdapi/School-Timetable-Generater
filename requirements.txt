@@ -1,0 +1,4 @@
+PyQt5
+pandas
+PyQt-Fluent-Widgets
+xlrd

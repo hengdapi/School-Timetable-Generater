@@ -1,6 +1,3 @@
-import tomllib,json
-
-import tomli_w
 from PyQt5.QtCore import Qt
 from qfluentwidgets import QConfig,RangeConfigItem,OptionsConfigItem,BoolValidator,ConfigItem,qconfig,RangeValidator,InfoBar,InfoBarPosition
 
@@ -12,8 +9,10 @@ class Settings(QConfig):
 
     subjects_info=ConfigItem("lessons_info","subjects_info","")
     lessons_info=ConfigItem("lessons_info","lessons_info","")
+    teachers_info=ConfigItem("lessons_info","teachers_info","")
 
-    priority=ConfigItem("rules","priority","")
+    rule_types=ConfigItem("rules","rule_types","")
+    rules=ConfigItem("rules","rules","")
 
 def load_settings():
     cfg=Settings()
@@ -23,12 +22,14 @@ def load_settings():
 
 def save_settings(window,msg_type=True,error:str=None):
     if msg_type:
+        # 将内存配置写入文件
+        window.cfg.save()
         InfoBar.success(
             title='设置保存成功！',
-            content="设置已生效",
+            content="",
             orient=Qt.Horizontal,
             isClosable=True,
-            position=InfoBarPosition.TOP_RIGHT,
+            position=InfoBarPosition.TOP,
             duration=2000,
             parent=window
         )
@@ -38,7 +39,7 @@ def save_settings(window,msg_type=True,error:str=None):
             content=error,
             orient=Qt.Horizontal,
             isClosable=True,
-            position=InfoBarPosition.TOP_RIGHT,
-            duration=2000,
+            position=InfoBarPosition.TOP,
+            duration=-1,
             parent=window
         )

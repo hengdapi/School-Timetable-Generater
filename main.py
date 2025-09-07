@@ -3,15 +3,15 @@ import sys
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QIcon,QFont
 from PyQt5.QtCore import Qt,QCoreApplication,QLocale,QSize,QEventLoop,QTimer
-from qfluentwidgets import *
+from qfluentwidgets import MSFluentWindow,SplashScreen,FluentTranslator
 from qfluentwidgets.common.icon import FluentIcon
 from pages import home,settings,generate
 
-class Window(FluentWindow):
+class Window(MSFluentWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("课程表生成器")
-        self.setWindowIcon(QIcon("logo.png"))
+        self.setWindowIcon(QIcon("logo.ico"))
         self.setFont(QFont("Microsoft YaHei", 20))
         self.resize(1300, 700)
 
