@@ -1,19 +1,22 @@
+import logging
+import sys
+
 import pandas as pd
 from PyQt5.QtWidgets import QTableWidgetItem
 from qfluentwidgets import TableWidget
 
 from wr_settings import *
 
-def generate_time(lesson):
+sys.setrecursionlimit(10000)
+logging.basicConfig(format="%(levelname)s %(filename)s %(funcName)s %(lineno)d行:\t%(message)s",
+                    level=logging.DEBUG)
+def lesson_to_str(lesson):
     """
     根据课程节次生成时间描述
 
     :param lesson: 课程节次
     :return: 时间描述（如"上午第1节"）
     """
-    # 读取设置文件，获取上午课程数量
-    cfg = load_settings()
-
     # 判断课程是在上午还是下午
     if lesson <= cfg.morning_class_num.value:
         time = "上午"
@@ -62,7 +65,6 @@ def rule_to_string(rule):
     :param rule: 规则
     :return: 规则的字符串表示
     """
-    cfg=load_settings()
     ans=cfg.rule_types.value[rule["type"]].replace("|","").replace("{","").replace("}","")
     for string in rule:
         if string=="type":

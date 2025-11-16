@@ -1,3 +1,5 @@
+import logging
+
 from PyQt5.QtCore import Qt
 from qfluentwidgets import QConfig,RangeConfigItem,OptionsConfigItem,BoolValidator,ConfigItem,qconfig,RangeValidator,InfoBar,InfoBarPosition
 
@@ -18,12 +20,13 @@ def load_settings():
     cfg=Settings()
     qconfig.load("settings.json", cfg)
     return cfg
-
+cfg=load_settings()
 
 def save_settings(window,msg_type=True,error:str=None):
     if msg_type:
         # 将内存配置写入文件
-        window.cfg.save()
+        logging.info("保存设置")
+        cfg.save()
         InfoBar.success(
             title='设置保存成功！',
             content="",

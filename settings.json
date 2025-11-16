@@ -2984,10 +2984,11 @@
             "set_num": "{subject}|学科同一时间最多排|{number}|节课",
             "avoid_subject": "{subjectA}|学科与|{subjectB}|学科不能排在同一时间",
             "avoid_teacher": "{teacherA}|老师与|{teacherB}|老师不能在同一时间有课",
-            "set_continue": "{subject}|学科每周至少连堂|{number}|次",
-            "set_same_time": "{classA}|与|{classB}|的|{subject}|学科必须排在同一时间"
+            "set_continue": "{subject}|学科每周至少连堂|{number}|次"
         },
-        "rules": []
+        "rules": [
+
+        ]
     },
     "QFluentWidgets": {
         "ThemeColor": "#ff0067c0",

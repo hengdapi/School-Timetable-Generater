@@ -13,7 +13,7 @@ def add_widget(widget,layout:QBoxLayout,spacing=20):
     layout.addWidget(widget)
     layout.addSpacing(spacing)
 
-def label(text: str,label_type,font:QFont,window:QFrame,layout:QBoxLayout,spacing):
+def label(text: str,label_type,font:QFont,window:QFrame,layout:QBoxLayout,spacing=20):
     label = label_type(text, window)
     label.setFont(font)
     add_widget(label,layout,spacing)
