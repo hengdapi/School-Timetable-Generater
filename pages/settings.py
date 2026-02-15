@@ -99,7 +99,7 @@ class Settings(QFrame):
                 elif "teacher" in string_name:
                     items=cfg.teachers_info.value
                 elif "class" in string_name:
-                    items=["单数班级","双数班级"]+[clas["班级"] for clas in cfg.lessons_info.value]
+                    items=[clas["班级"] for clas in cfg.lessons_info.value]
                 else:
                     items=["无可选项"]
                 combo.addItems(items)
@@ -146,19 +146,19 @@ class Settings(QFrame):
         new_type=new_rule["type"]
         if new_type in ["set_time","avoid_time","priority_time"]:
             for rule in cfg.rules.value:
-                if rule["type"] in ["set_time","avoid_time","priority_time"] and rule["time"]==new_rule["time"] and rule["subject"]==new_rule["subject"]:
+                if rule["type"] in ["set_time","avoid_time","priority_time"] and rule["lesson"]==new_rule["lesson"] and rule["subject"]==new_rule["subject"]:
                     return False,rule
         elif new_type=="set_time":
             for rule in cfg.rules.value:
-                if rule["type"]=="set_time" and rule["time"]==new_rule["time"]:
+                if rule["type"]=="set_time" and rule["lesson"]==new_rule["lesson"]:
                     return False,rule
-                elif rule["type"]=="priority_time" and rule["time"]==new_rule["time"]:
+                elif rule["type"]=="priority_time" and rule["lesson"]==new_rule["lesson"]:
                     return False,rule
         elif new_type=="priority_time":
             for rule in cfg.rules.value:
-                if rule["type"]=="priority_time" and rule["time"]==new_rule["time"]:
+                if rule["type"]=="priority_time" and rule["lesson"]==new_rule["lesson"]:
                     return False,rule
-                elif rule["type"]=="set_time" and rule["time"]==new_rule["time"]:
+                elif rule["type"]=="set_time" and rule["lesson"]==new_rule["lesson"]:
                     return False,rule
         elif new_type=="set_num":
             for rule in cfg.rules.value:
@@ -241,7 +241,6 @@ class Settings(QFrame):
 
             # 预览课程表
             subheader("预览",self,self.layout)
-            write("一年级1班课程表",self,self.layout,0)
             self.table=pd.DataFrame(table_style)
 
             self.table_style_show=TableWidget()

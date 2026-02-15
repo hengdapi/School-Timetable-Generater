@@ -22,7 +22,6 @@ def label(text: str,label_type,font:QFont,window:QFrame,layout:QBoxLayout,spacin
 def title(text: str,window:QFrame,layout:QBoxLayout,spacing=20):
     return label(text,LargeTitleLabel,fonts.title,window,layout,spacing)
 
-
 def biggersubheader(text: str,window:QFrame,layout:QBoxLayout,spacing=20):
     return label(text,SubtitleLabel,fonts.biggersubheader,window,layout,spacing)
 
