@@ -92,7 +92,7 @@ class Settings(QFrame):
                 combo=EditableComboBox()
                 if "subject" in string_name:
                     items=cfg.subjects_info.value
-                elif "time" in string_name:
+                elif "lesson" in string_name:
                     items=self.times
                 elif "number" in string_name:
                     items=[str(i) for i in range(1,len(cfg.lessons_info.value)+1)]
