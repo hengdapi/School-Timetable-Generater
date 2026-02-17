@@ -146,19 +146,19 @@ class Settings(QFrame):
         new_type=new_rule["type"]
         if new_type in ["set_time","avoid_time","priority_time"]:
             for rule in cfg.rules.value:
-                if rule["type"] in ["set_time","avoid_time","priority_time"] and rule["lesson"]==new_rule["lesson"] and rule["subject"]==new_rule["subject"]:
+                if rule["type"] in ["set_time","avoid_time","priority_time"] and rule["time"]==new_rule["time"] and rule["subject"]==new_rule["subject"]:
                     return False,rule
         elif new_type=="set_time":
             for rule in cfg.rules.value:
-                if rule["type"]=="set_time" and rule["lesson"]==new_rule["lesson"]:
+                if rule["type"]=="set_time" and rule["time"]==new_rule["time"]:
                     return False,rule
-                elif rule["type"]=="priority_time" and rule["lesson"]==new_rule["lesson"]:
+                elif rule["type"]=="priority_time" and rule["time"]==new_rule["time"]:
                     return False,rule
         elif new_type=="priority_time":
             for rule in cfg.rules.value:
-                if rule["type"]=="priority_time" and rule["lesson"]==new_rule["lesson"]:
+                if rule["type"]=="priority_time" and rule["time"]==new_rule["time"]:
                     return False,rule
-                elif rule["type"]=="set_time" and rule["lesson"]==new_rule["lesson"]:
+                elif rule["type"]=="set_time" and rule["time"]==new_rule["time"]:
                     return False,rule
         elif new_type=="set_num":
             for rule in cfg.rules.value:

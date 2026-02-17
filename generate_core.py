@@ -23,7 +23,7 @@ def class_total_dataframe()->pd.DataFrame:
         data[clas.name]={}
         for time,subject in lesson.items():
             data[clas.name][time.string]=subject.name
-            if cfg.show_teachers:
+            if cfg.show_teachers.value:
                 data[clas.name][time.string]+=f"\n({subject.get_teacher(clas).name})"
     return pd.DataFrame(data).transpose()
 
