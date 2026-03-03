@@ -3,13 +3,17 @@ import sys
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QIcon,QFont
 from PyQt5.QtCore import Qt,QCoreApplication,QLocale,QSize,QEventLoop,QTimer
-from qfluentwidgets import MSFluentWindow,SplashScreen,FluentTranslator
+from qfluentwidgets import MSFluentWindow,SplashScreen,FluentTranslator,setThemeColor,setTheme,Theme
 from qfluentwidgets.common.icon import FluentIcon
 from pages import home,settings,generate
+from qframelesswindow.utils import getSystemAccentColor
 
 class Window(MSFluentWindow):
     def __init__(self):
         super().__init__()
+        if sys.platform in ["win32","darwin"]:
+            setThemeColor(getSystemAccentColor(),save=False)
+        setTheme(Theme.AUTO,save=False)
         self.setWindowTitle("课程表生成器")
         self.setWindowIcon(QIcon("logo.ico"))
         self.setFont(QFont("Microsoft YaHei", 20))
@@ -31,9 +35,9 @@ class Window(MSFluentWindow):
         loop.exec()
         self.splashScreen.finish()
 
-        self.addSubInterface(home.Home(self),FluentIcon("Home"),"主页")
-        self.addSubInterface(settings.Settings(self),FluentIcon("Setting"),"设置")
-        self.addSubInterface(generate.Generate(self),FluentIcon("Brush"),"生成")
+        self.addSubInterface(home.Home(self),FluentIcon.HOME,"主页")
+        self.addSubInterface(settings.Settings(self),FluentIcon.SETTING,"设置")
+        self.addSubInterface(generate.Generate(self),FluentIcon.BRUSH,"生成&导出")
 
 
 if __name__ == '__main__':

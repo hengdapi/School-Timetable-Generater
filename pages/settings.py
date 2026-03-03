@@ -1,33 +1,29 @@
 # coding=utf-8
+import traceback
+
 from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QFontDatabase
 from qfluentwidgets.components.date_time.picker_base import SeparatorWidget
 
 from locals import *
 from style import *
 from wr_settings import *
 
-
 class Settings(QFrame):
     def update_table_preview(self):
+        cfg.text_font.value=self.font_combo.currentText()
+        cfg.text_size.value=self.text_size.value()
         save_settings(self)
         # 根据是否显示教师姓名调整表格信息和样式
         if cfg.show_teachers.value:
-            info="课程信息\n(教师姓名)"
+            info="课程信息\n教师姓名"
         else:
             info="课程信息"
 
-        # 生成表格预览样式
-        table_style=[]
-        for day in range(5):
-            table_style.append({"星期":days[day+1]})
-            for i in range(1,cfg.morning_class_num.value+1):
-                table_style[day][f"上午第{i}节"]=info
-            for i in range(1,cfg.afternoon_class_num.value+1):
-                table_style[day][f"下午第{i}节"]=info
-        self.table=pd.DataFrame(table_style)
+        self.table=table_style(info)
         # 根据设置选择表格显示方式
-        display_df_in_table(self.table_style_show,self.table.transpose())
-        self.table_style_show.setFixedHeight(50*self.table_style_show.rowCount()+2)
+        display_df_in_table(self.table_style_preview,self.table)
+        self.table_style_preview.setFixedHeight(50*self.table_style_preview.rowCount()+40)
 
     def pick_lessons_info(self):
         user_info_file,_=QFileDialog.getOpenFileName(
@@ -111,80 +107,76 @@ class Settings(QFrame):
         QTimer.singleShot(100,lambda :self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum()))
 
     def add_rule(self):
-        name,type=self.rule_combo.currentData()
-        name=name.replace("{","").replace("}","").replace("|","")
-        new_rule={"type":type}
+        name,kind=self.rule_combo.currentData()
+        new_rule={"type":kind}
         if name is None:
             return
         for string_name,elements in self.string_elements.items():
             combo:ComboBox=elements[1]
             if combo.currentText() not in [item.text for item in combo.items]:
                 return
-            name=name.replace(string_name,combo.currentText())
             new_rule[string_name]=combo.currentText()
+
+        new_rule=Rule(**new_rule)
         success,rule=self.check_rule(new_rule)
         if success:
-            cfg.rules.value.append(new_rule)
-            item=QListWidgetItem(name)
+            rules.append(new_rule)
+            item=QListWidgetItem(str(new_rule))
             item.setData(Qt.UserRole,new_rule)
             self.rule_list.addItem(item)
+            cfg.rules.value.append(new_rule.to_dict())
             save_settings(self)
         else:
-            save_settings(self,False,"新规则与现有规则冲突或重复："+rule_to_string(rule))
+            save_settings(self,False,"新规则与现有规则冲突或重复："+str(rule))
 
     def remove_rule(self):
         try:
             selected_rule=self.rule_list.selectedItems()[0]
-            cfg.rules.value.remove(selected_rule.data(Qt.UserRole))
+            rules.remove(selected_rule.data(Qt.UserRole))
             self.rule_list.takeItem(self.rule_list.row(selected_rule))
-            self.remove_rule_button.setEnabled(len(cfg.rules.value))
+            self.remove_rule_button.setEnabled(len(rules))
+            cfg.rules.value.remove(selected_rule.data(Qt.UserRole).to_dict())
             save_settings(self)
         except Exception as e:
             save_settings(self,False,str(e))
 
-    def check_rule(self,new_rule):
-        new_type=new_rule["type"]
-        if new_type in ["set_time","avoid_time","priority_time"]:
-            for rule in cfg.rules.value:
-                if rule["type"] in ["set_time","avoid_time","priority_time"] and rule["time"]==new_rule["time"] and rule["subject"]==new_rule["subject"]:
+    def check_rule(self,new_rule:Rule):
+        new_type=new_rule.type
+        if new_type in [Rule_type.set_time,Rule_type.avoid_time,Rule_type.priority_time]:
+            for rule in rules:
+                if rule.type in [Rule_type.set_time,Rule_type.avoid_time,Rule_type.priority_time] and rule.time==new_rule.time and rule.subject==new_rule.subject:
                     return False,rule
-        elif new_type=="set_time":
-            for rule in cfg.rules.value:
-                if rule["type"]=="set_time" and rule["time"]==new_rule["time"]:
+        elif new_type==Rule_type.set_time:
+            for rule in rules:
+                if rule.type==Rule_type.set_time and rule.time==new_rule.time:
                     return False,rule
-                elif rule["type"]=="priority_time" and rule["time"]==new_rule["time"]:
+                elif rule.type==Rule_type.priority_time and rule.time==new_rule.time:
                     return False,rule
-        elif new_type=="priority_time":
-            for rule in cfg.rules.value:
-                if rule["type"]=="priority_time" and rule["time"]==new_rule["time"]:
+        elif new_type==Rule_type.priority_time:
+            for rule in rules:
+                if rule.type==Rule_type.priority_time and rule.time==new_rule.time:
                     return False,rule
-                elif rule["type"]=="set_time" and rule["time"]==new_rule["time"]:
+                elif rule.type==Rule_type.set_time and rule.time==new_rule.time:
                     return False,rule
-        elif new_type=="set_num":
-            for rule in cfg.rules.value:
-                if rule["type"]=="set_num" and rule["subject"]==new_rule["subject"]:
+        elif new_type==Rule_type.set_num:
+            for rule in rules:
+                if rule.type==Rule_type.set_num and rule.subject==new_rule.subject:
                     return False,rule
-        elif new_type=="avoid_subject":
-            if new_rule["subjectA"]==new_rule["subjectB"]:
+        elif new_type==Rule_type.avoid_subject:
+            if new_rule.subjectA==new_rule.subjectB:
                 return False,new_rule
-            for rule in cfg.rules.value:
-                if rule["type"]=="avoid_subject" and {rule["subjectA"],rule["subjectB"]}=={new_rule["subjectA"],new_rule["subjectB"]}:
+            for rule in rules:
+                if rule.type==Rule_type.avoid_subject and {rule.subjectA,rule.subjectB}=={new_rule.subjectA,new_rule.subjectB}:
                     return False,rule
-        elif new_type=="avoid_teacher":
-            if new_rule["teacherA"]==new_rule["teacherB"]:
+        elif new_type==Rule_type.avoid_teacher:
+            if new_rule.teacherA==new_rule.teacherB:
                 return False,new_rule
-            for rule in cfg.rules.value:
-                if rule["type"]=="avoid_teacher" and {rule["teacherA"],rule["teacherB"]}=={new_rule["teacherA"],new_rule["teacherB"]}:
+            for rule in rules:
+                if rule.type==Rule_type.avoid_teacher and {rule.teacherA,rule.teacherB}=={new_rule.teacherA,new_rule.teacherB}:
                     return False,rule
-        elif new_type=="set_continue":
-            for rule in cfg.rules.value:
-                if rule["type"]=="set_continue" and rule["subject"]==new_rule["subject"]:
-                    return False,rule
-        elif new_type=="set_same_time":
-            if new_rule["classA"]==new_rule["classB"]:
-                return False,new_rule
-            for rule in cfg.rules.value:
-                if rule["type"]=="set_same_time" and rule["subject"]==new_rule["subject"] and {rule["classA"],rule["classB"]}=={new_rule["classA"],new_rule["classB"]}:
+        elif new_type==Rule_type.set_continue:
+            for rule in rules:
+                if rule.type==Rule_type.set_continue and rule.subject==new_rule.subject:
                     return False,rule
         return True,None
 
@@ -196,12 +188,10 @@ class Settings(QFrame):
             main_layout = QVBoxLayout(self)
             main_layout.setContentsMargins(20,20,0,0)
 
-            # === 创建可滚动区域 ===
             self.scroll_area=SingleDirectionScrollArea(orient=Qt.Vertical)
             self.scroll_area.setStyleSheet("QScrollArea{background: transparent; border: none}")
             self.scroll_area.setWidgetResizable(True)
 
-            # === 创建内容容器 ===
             view=QWidget()
             view.setStyleSheet("QWidget{background: transparent}")
             self.layout = QVBoxLayout(view)
@@ -224,39 +214,28 @@ class Settings(QFrame):
             show_teachers.checkedChanged.connect(self.update_table_preview)
             add_widget(show_teachers,self.layout,0)
 
-            # 根据是否显示教师姓名调整表格信息和样式
-            if cfg.show_teachers.value:
-                info="课程信息\n(教师姓名)"
-            else:
-                info="课程信息"
+            text_style=SettingCard(FluentIcon.FONT,"文字样式","设置课程表文字样式")
+            add_widget(text_style,self.layout)
+            self.font_combo=ComboBox()
+            self.font_combo.addItems(QFontDatabase().families())
+            self.font_combo.setCurrentText(cfg.text_font.value)
+            self.font_combo.currentTextChanged.connect(self.update_table_preview)
+            add_widget(self.font_combo,text_style.hBoxLayout)
 
-            # 生成表格预览样式
-            table_style=[]
-            for day in range(5):
-                table_style.append({"星期":days[day+1]})
-                for i in range(1,cfg.morning_class_num.value+1):
-                    table_style[day][f"上午第{i}节"]=info
-                for i in range(1,cfg.afternoon_class_num.value+1):
-                    table_style[day][f"下午第{i}节"]=info
+            self.text_size=SpinBox()
+            self.text_size.setRange(1,100)
+            self.text_size.setValue(cfg.text_size.value)
+            self.text_size.valueChanged.connect(self.update_table_preview)
+            add_widget(self.text_size,text_style.hBoxLayout)
 
             # 预览课程表
             subheader("预览",self,self.layout)
-            self.table=pd.DataFrame(table_style)
-
-            self.table_style_show=TableWidget()
-            self.table_style_show.setBorderVisible(True)
-            self.table_style_show.setFont(fonts.subheader)
-            self.table_style_show.setBorderRadius(8)
-            self.table_style_show.verticalHeader().setDefaultSectionSize(50)
-            self.table_style_show.horizontalHeader().setDefaultSectionSize(155)
-            self.table_style_show.horizontalHeader().setVisible(False)
-            self.table_style_show.setEditTriggers(TableWidget.NoEditTriggers)
-            # 根据设置选择表格显示方式
-            display_df_in_table(self.table_style_show,self.table.transpose())
-            self.table_style_show.setFixedHeight(50*self.table_style_show.rowCount()+2)
-            add_widget(self.table_style_show,self.layout)
-
-            add_widget(SeparatorWidget(orient=Qt.Horizontal),self.layout)
+            self.table_style_preview=TableWidget()
+            self.table_style_preview.verticalHeader().setDefaultSectionSize(50)
+            self.table_style_preview.horizontalHeader().setDefaultSectionSize(155)
+            self.table_style_preview.setEditTriggers(TableWidget.NoEditTriggers)
+            add_widget(self.table_style_preview,self.layout)
+            self.update_table_preview()
 
             # 课程信息设置区域
             biggersubheader("课程信息",self,self.layout)
@@ -302,9 +281,8 @@ class Settings(QFrame):
             self.rule_list=ListWidget()
             self.rule_list.setFixedHeight(200)
             self.rule_list.itemClicked.connect(lambda :self.remove_rule_button.setEnabled(True))
-            for i in range(len(cfg.rules.value)):
-                rule=cfg.rules.value[i]
-                item=QListWidgetItem(rule_to_string(rule))
+            for rule in rules:
+                item=QListWidgetItem(str(rule))
                 item.setData(Qt.UserRole,rule)
                 self.rule_list.addItem(item)
             add_widget(self.rule_list,self.layout)
@@ -316,8 +294,8 @@ class Settings(QFrame):
 
             self.rule_combo=ComboBox()
             self.rule_combo.addItem("请选择规则类型",userData=[None,None])
-            for type,name in rule_types.items():
-                self.rule_combo.addItem(name.replace("|",""),userData=[name,type])
+            for kind,name in rule_types.items():
+                self.rule_combo.addItem(name.replace("|",""),userData=[name,kind])
             add_widget(self.rule_combo,rule_layout)
             self.rule_combo.currentIndexChanged.connect(self.show_rule_strings)
 
@@ -327,9 +305,9 @@ class Settings(QFrame):
             self.add_rule_button.setFixedWidth(200)
             self.add_rule_button.clicked.connect(self.add_rule)
 
-            # === 设置滚动区域内容 ===
             self.scroll_area.setWidget(view)
             main_layout.addWidget(self.scroll_area)
             logging.info("设置页面加载完成")
-        except Exception as e:
-            logging.critical(e)
+        except:
+            e=traceback.format_exc()
+            logging.critical(f"加载设置页面出错：\n{e}")
