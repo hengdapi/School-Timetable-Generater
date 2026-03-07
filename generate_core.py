@@ -1,46 +1,42 @@
 import random,time
-import traceback
 from locals import *
 from PyQt5.QtCore import QThread,pyqtSignal
 
 def check(clas: Class,time: Time,subject: Subject) -> bool:
     try:
+        failed_reason=""
         logging.debug(f"检查能否在 {clas.name} 的 {time} 安排 {subject}")
         if subject.get_teacher(clas).is_busy(time):
-            logging.debug(f"{subject} 的任课老师 {subject.get_teacher(clas).name} 在 {time} 有课")
-            return False
+            failed_reason=f"{subject} 的任课老师 {subject.get_teacher(clas).name} 在 {time} 有课"
 
         for rule in rules:
             # 不能排在指定时间
             if rule.type==Rule_type.avoid_time:
                 # 支持只写节次（如"上午第4节"）
                 if rule.subject==subject and time==rule.time:
-                    logging.debug(f"{clas.name} 不能在 {time} 排 {subject}")
-                    return False
+                    failed_reason=f"{clas.name} 不能在 {time} 排 {subject}"
             # 同一时间最多排几节课
             elif rule.type==Rule_type.set_num:
                 if rule.subject==subject and subject.get_time_num(time)>=int(rule.number):
-                    logging.debug(f"{clas.name} 同一时间 最多排 {rule.number} 节课")
-                    return False
+                    failed_reason=f"{clas.name} 同一时间 最多排 {rule.number} 节课"
             # 学科不能与另一学科同一时间
             elif rule.type==Rule_type.avoid_subject:
                 if subject==rule.subjectA and rule.subjectB.timetable.get(time):
-                    logging.debug(f"已经在 {time} 安排了会引起冲突的 {rule.subjectB}")
-                    return False
+                    failed_reason=f"已经在 {time} 安排了会引起冲突的 {rule.subjectB}"
                 if subject==rule.subjectB and rule.subjectA.timetable.get(time):
-                    logging.debug(f"已经在 {time} 安排了会引起冲突的 {rule.subjectA}")
-                    return False
+                    failed_reason=f"已经在 {time} 安排了会引起冲突的 {rule.subjectA}"
             # 老师不能与另一老师同一时间有课
             elif rule.type==Rule_type.avoid_teacher:
                 teacher=subject.get_teacher(clas)
                 teacherA = rule.teacherA
                 teacherB = rule.teacherB
                 if teacher==teacherA and teacherB.timetable.get(time):
-                    logging.debug(f"{clas.name} {subject} 的教师 {teacherA.name} 和 {teacherB.name} 在 {time} 会冲突")
-                    return False
+                    failed_reason=f"{clas.name} {subject} 的教师 {teacherA.name} 和 {teacherB.name} 在 {time} 会冲突"
                 elif teacher==teacherB and teacherA.timetable.get(time):
-                    logging.debug(f"{clas.name} {subject} 的教师 {teacherB.name} 和 {teacherA.name} 在 {time} 会冲突")
-                    return False
+                    failed_reason=f"{clas.name} {subject} 的教师 {teacherB.name} 和 {teacherA.name} 在 {time} 会冲突"
+        if failed_reason:
+            logging.debug(failed_reason)
+            return False
         logging.debug("可以安排")
         return True
     except:

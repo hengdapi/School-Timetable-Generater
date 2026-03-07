@@ -1,7 +1,5 @@
 # coding=utf-8
-import traceback
-
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTime
 from PyQt5.QtGui import QFontDatabase
 from qfluentwidgets.components.date_time.picker_base import SeparatorWidget
 
@@ -9,11 +7,18 @@ from locals import *
 from style import *
 from wr_settings import *
 
+
 class Settings(QFrame):
+    def save_cfg(self,attr:str,value):
+        setattr(getattr(cfg,attr),"value",value)
+        save_settings()
+
     def update_table_preview(self):
-        cfg.text_font.value=self.font_combo.currentText()
-        cfg.text_size.value=self.text_size.value()
-        save_settings(self)
+        save_settings()
+        if cfg.morning_class_num.value+cfg.afternoon_class_num.value>len(cfg.lessons_time.value):
+            for lesson in range(len(cfg.lessons_time.value)+1,cfg.morning_class_num.value+cfg.afternoon_class_num.value+1):
+                cfg.lessons_time.value[str(lesson)]=[[0,0],[0,0]]
+        save_settings()
         # 根据是否显示教师姓名调整表格信息和样式
         if cfg.show_teachers.value:
             info="课程信息\n教师姓名"
@@ -24,6 +29,7 @@ class Settings(QFrame):
         # 根据设置选择表格显示方式
         display_df_in_table(self.table_style_preview,self.table)
         self.table_style_preview.setFixedHeight(50*self.table_style_preview.rowCount()+40)
+        self.show_lesson_time_group()
 
     def pick_lessons_info(self):
         user_info_file,_=QFileDialog.getOpenFileName(
@@ -57,9 +63,10 @@ class Settings(QFrame):
                 cfg.subjects_info.value=new_subjects
                 new_teachers=[x for x in new_teachers if not pd.isna(x)]
                 cfg.teachers_info.value=list(new_teachers)
-                save_settings(self)
-            except Exception as e:
-                save_settings(self,False,str(e))
+                save_settings()
+            except:
+                e=traceback.format_exc()
+                logging.error(f"解析课程信息文件时出错：\n{e}")
         else:
             if cfg.lessons_info.value!="":
                 cfg.lessons_info.value=pd.DataFrame(cfg.lessons_info.value).to_json(orient="records", lines=False, force_ascii=False)
@@ -83,7 +90,7 @@ class Settings(QFrame):
             if string[0]=="{" and string[-1]=="}":
                 string_name=string[1:-1]
                 string_layout=QHBoxLayout()
-                self.layout.insertLayout(33,string_layout)
+                self.layout.insertLayout(self.layout.indexOf(self.rule_list)+3,string_layout)
                 name_label=write(f"请填写{string_name}字段：",self,string_layout)
                 combo=EditableComboBox()
                 if "subject" in string_name:
@@ -104,7 +111,6 @@ class Settings(QFrame):
                 add_widget(combo,string_layout)
                 self.string_layouts.append(string_layout)
                 self.string_elements[string_name]=[name_label,combo]
-        QTimer.singleShot(100,lambda :self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum()))
 
     def add_rule(self):
         name,kind=self.rule_combo.currentData()
@@ -125,9 +131,9 @@ class Settings(QFrame):
             item.setData(Qt.UserRole,new_rule)
             self.rule_list.addItem(item)
             cfg.rules.value.append(new_rule.to_dict())
-            save_settings(self)
+            save_settings()
         else:
-            save_settings(self,False,"新规则与现有规则冲突或重复："+str(rule))
+            settings_error(self,"新规则与现有规则冲突或重复："+str(rule))
 
     def remove_rule(self):
         try:
@@ -136,9 +142,10 @@ class Settings(QFrame):
             self.rule_list.takeItem(self.rule_list.row(selected_rule))
             self.remove_rule_button.setEnabled(len(rules))
             cfg.rules.value.remove(selected_rule.data(Qt.UserRole).to_dict())
-            save_settings(self)
-        except Exception as e:
-            save_settings(self,False,str(e))
+            save_settings()
+        except:
+            e=traceback.format_exc()
+            logging.error(f"删除规则时出错：\n{e}")
 
     def check_rule(self,new_rule:Rule):
         new_type=new_rule.type
@@ -180,6 +187,79 @@ class Settings(QFrame):
                     return False,rule
         return True,None
 
+    def lesson_time_changed(self,lesson:int,end:bool,time:QTime):
+        cfg.lessons_time.value[str(lesson)][end]=[time.hour(),time.minute()]
+        save_settings()
+
+    def show_lesson_time_group(self):
+        self.layout.removeWidget(self.lesson_length_group)
+        self.lesson_length_group.hide()
+        status=self.lesson_length_group.isExpand
+        self.lesson_length_group=ExpandGroupSettingCard(FluentIcon.STOP_WATCH,"课程起止时间")
+        for lesson in range(1,cfg.morning_class_num.value+cfg.afternoon_class_num.value+1):
+            curr_time=Time(1,lesson)
+            lesson_length_card=SettingCard("",curr_time.to_str(False,True))
+            start_time=TimePicker()
+            start_time.setTime(QTime(cfg.lessons_time.value[str(lesson)][0][0],cfg.lessons_time.value[str(lesson)][0][1]))
+            start_time.timeChanged.connect(lambda time,l=lesson: self.lesson_time_changed(l,False,time))
+            lesson_length_card.hBoxLayout.addWidget(start_time)
+            lesson_length_card.hBoxLayout.addWidget(QLabel("  ~  "))
+            end_time=TimePicker()
+            end_time.setTime(QTime(cfg.lessons_time.value[str(lesson)][1][0],cfg.lessons_time.value[str(lesson)][1][1]))
+            end_time.timeChanged.connect(lambda time,l=lesson: self.lesson_time_changed(l,True,time))
+            lesson_length_card.hBoxLayout.addWidget(end_time)
+            lesson_length_card.hBoxLayout.addSpacing(20)
+            self.lesson_length_group.addGroupWidget(lesson_length_card)
+        self.layout.insertWidget(self.layout.indexOf(self.school_name_card)+1,self.lesson_length_group)
+        self.lesson_length_group.setExpand(status)
+
+    def show_activities(self):
+        self.save_activity_lock=True
+        self.activity_table.setRowCount(len(cfg.activity_info.value))
+        self.activity_table.setFixedHeight(min(300,len(cfg.activity_info.value)*40+40))
+        r=0
+        for activity,(start_time,end_time) in cfg.activity_info.value.items():
+            item=QTableWidgetItem(activity)
+            item.setTextAlignment(Qt.AlignCenter)
+            self.activity_table.setItem(r,0,item)
+            start_timePicker=TimePicker()
+            start_timePicker.setTime(QTime(start_time[0],start_time[1]))
+            start_timePicker.timeChanged.connect(self.save_activity)
+            self.activity_table.setCellWidget(r,1,start_timePicker)
+            end_timePicker=TimePicker()
+            end_timePicker.setTime(QTime(end_time[0],end_time[1]))
+            end_timePicker.timeChanged.connect(self.save_activity)
+            self.activity_table.setCellWidget(r,2,end_timePicker)
+            r+=1
+        self.save_activity_lock=False
+
+    def add_activity(self):
+        cfg.activity_info.value[f"新活动{len(cfg.activity_info.value)+1}"]=[[0,0],[0,0]]
+        save_settings()
+        self.show_activities()
+
+    def del_activity(self):
+        cfg.activity_info.value.pop(self.activity_table.item(self.activity_table.currentRow(),0).text())
+        save_settings()
+        self.show_activities()
+
+    def save_activity(self):
+        if self.save_activity_lock:
+            return
+        activity_info={}
+        if [self.activity_table.item(r,0).text() for r in range(self.activity_table.rowCount())].count(self.activity_table.item(self.activity_table.currentRow(),0).text())>1:
+            InfoBar.error("请勿设置名称重复的活动",f"名称“{self.activity_table.item(self.activity_table.currentRow(),0).text()}”重复",parent=self,duration=2000)
+            self.save_activity_lock=True
+            self.activity_table.item(self.activity_table.currentRow(),0).setText(list(cfg.activity_info.value.keys())[self.activity_table.currentRow()])
+            self.save_activity_lock=False
+        for r in range(self.activity_table.rowCount()):
+            activity_info[self.activity_table.item(r,0).text()]=[
+                [self.activity_table.cellWidget(r,1).time.hour(),self.activity_table.cellWidget(r,1).time.minute()],
+                [self.activity_table.cellWidget(r,2).time.hour(),self.activity_table.cellWidget(r,2).time.minute()]
+            ]
+        cfg.activity_info.value=activity_info
+        save_settings()
+
     def __init__(self,parent=None):
         try:
             super().__init__(parent=parent)
@@ -219,13 +299,13 @@ class Settings(QFrame):
             self.font_combo=ComboBox()
             self.font_combo.addItems(QFontDatabase().families())
             self.font_combo.setCurrentText(cfg.text_font.value)
-            self.font_combo.currentTextChanged.connect(self.update_table_preview)
+            self.font_combo.currentTextChanged.connect(lambda :self.save_cfg("text_font",self.font_combo.currentText()))
             add_widget(self.font_combo,text_style.hBoxLayout)
 
             self.text_size=SpinBox()
             self.text_size.setRange(1,100)
             self.text_size.setValue(cfg.text_size.value)
-            self.text_size.valueChanged.connect(self.update_table_preview)
+            self.text_size.valueChanged.connect(lambda :self.save_cfg("text_size",self.text_size.value()))
             add_widget(self.text_size,text_style.hBoxLayout)
 
             # 预览课程表
@@ -235,7 +315,6 @@ class Settings(QFrame):
             self.table_style_preview.horizontalHeader().setDefaultSectionSize(155)
             self.table_style_preview.setEditTriggers(TableWidget.NoEditTriggers)
             add_widget(self.table_style_preview,self.layout)
-            self.update_table_preview()
 
             # 课程信息设置区域
             biggersubheader("课程信息",self,self.layout)
@@ -304,6 +383,46 @@ class Settings(QFrame):
             self.add_rule_button.setIcon(FluentIcon.ADD)
             self.add_rule_button.setFixedWidth(200)
             self.add_rule_button.clicked.connect(self.add_rule)
+
+            add_widget(SeparatorWidget(orient=Qt.Horizontal),self.layout)
+            # 其他信息
+            biggersubheader("其他信息",self,self.layout)
+            self.school_name_card=SettingCard(FluentIcon.INFO,"学校名称","设置学校名称")
+            add_widget(self.school_name_card,self.layout,0)
+            self.school_name=LineEdit()
+            self.school_name.setText(cfg.school_name.value)
+            add_widget(self.school_name,self.school_name_card.hBoxLayout)
+            self.school_name.textChanged.connect(lambda :self.save_cfg("school_name",self.school_name.text()))
+
+            self.lesson_length_group=ExpandGroupSettingCard(FluentIcon.STOP_WATCH,"课程起止时间")
+            add_widget(self.lesson_length_group,self.layout)
+            self.update_table_preview()
+
+            subheader("活动信息",self,self.layout)
+
+            self.activity_operation_layout=QHBoxLayout()
+            self.layout.addLayout(self.activity_operation_layout)
+
+            self.add_activity_button=button("添加活动",self,self.activity_operation_layout)
+            self.add_activity_button.setIcon(FluentIcon.ADD)
+            self.add_activity_button.clicked.connect(self.add_activity)
+            self.add_activity_button.setFixedWidth(200)
+            self.del_activity_button=button("删除活动",self,self.activity_operation_layout)
+            self.del_activity_button.setIcon(FluentIcon.REMOVE)
+            self.del_activity_button.setFixedWidth(200)
+            self.del_activity_button.clicked.connect(self.del_activity)
+            self.activity_operation_layout.addStretch(1)
+
+            self.save_activity_lock=False
+            self.activity_table=TableWidget()
+            self.activity_table.setColumnCount(3)
+            self.activity_table.setHorizontalHeaderLabels(["活动名称","开始时间","结束时间"])
+            for c in range(3):
+                self.activity_table.setColumnWidth(c,300)
+            self.activity_table.verticalHeader().hide()
+            self.show_activities()
+            self.activity_table.cellChanged.connect(self.save_activity)
+            add_widget(self.activity_table,self.layout)
 
             self.scroll_area.setWidget(view)
             main_layout.addWidget(self.scroll_area)

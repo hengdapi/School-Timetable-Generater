@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 from PyQt5.QtCore import Qt
 from qfluentwidgets import QConfig,RangeConfigItem,OptionsConfigItem,BoolValidator,ConfigItem,qconfig,RangeValidator,InfoBar,InfoBarPosition
@@ -15,6 +16,10 @@ class Settings(QConfig):
     lessons_info=ConfigItem("lessons_info","lessons_info","")
     teachers_info=ConfigItem("lessons_info","teachers_info","")
 
+    school_name=ConfigItem("other_info","school_name","学校名称")
+    lessons_time=ConfigItem("other_info","lessons_time","")
+    activity_info=ConfigItem("other_info","activity_info","")
+
     rule_types=ConfigItem("rules","rule_types","")
     rules=ConfigItem("rules","rules","")
 
@@ -24,19 +29,23 @@ def load_settings():
     return cfg
 cfg=load_settings()
 
-def save_settings(window,msg_type=True,error:str=None):
-    logging.info(f"正在保存设置，是否成功：{msg_type}，错误信息：{error}")
-    if msg_type:
+def save_settings():
+    try:
+        logging.info(f"正在保存设置")
         # 将内存配置写入文件
         cfg.save()
         logging.info("保存设置成功")
-    else:
-        InfoBar.error(
-            title='设置保存失败！',
-            content=error,
-            orient=Qt.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP,
-            duration=-1,
-            parent=window
-        )
+    except:
+        e=traceback.format_exc()
+        logging.error(f"保存设置时出错：\n{e}")
+
+def settings_error(window,error):
+    InfoBar.error(
+        title='设置保存失败！',
+        content=error,
+        orient=Qt.Horizontal,
+        isClosable=True,
+        position=InfoBarPosition.TOP,
+        duration=-1,
+        parent=window
+    )

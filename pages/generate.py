@@ -1,7 +1,7 @@
-from qfluentwidgets.components.date_time.picker_base import SeparatorWidget
-
 from style import *
 from generate_core import *
+from save_core import save_timetable
+from PyQt5.QtCore import Qt
 import time
 
 class Generate(QFrame):
@@ -12,8 +12,8 @@ class Generate(QFrame):
     def show_widgets(self):
         for widget in self.hidden_widgets:
             widget.show()
-    def __init__(self,parent=None):
 
+    def __init__(self,parent=None):
         super().__init__(parent=parent)
         self.setObjectName("Generate")
         main_layout = QVBoxLayout(self)
@@ -34,15 +34,25 @@ class Generate(QFrame):
         self.cfg=load_settings()
         # 检查是否已配置课程信息
         if not self.cfg.lessons_info.value:
-            save_settings(self,False,"请先在设置中配置课程信息")
+            settings_error(self,"请先在设置中配置课程信息")
 
+        self.operation_layout=QHBoxLayout(self)
+        self.layout.addLayout(self.operation_layout)
         # 生成课程表按钮
         self.generate_button=PrimaryPushButton("生成课程表",self)
         add_widget(self.generate_button,self.layout,0)
         self.generate_button.setIcon(FluentIcon.BRUSH)
         self.generate_button.setFixedSize(160,40)
         self.generate_button.clicked.connect(self.generate_timetable)
-        add_widget(self.generate_button,self.layout,0)
+        add_widget(self.generate_button,self.operation_layout)
+
+        self.save_button=PrimaryPushButton()
+        self.save_button.setText("保存课程表")
+        self.save_button.setIcon(FluentIcon.SAVE)
+        self.save_button.setFixedSize(160,40)
+        self.save_button.clicked.connect(lambda :save_timetable(self))
+        add_widget(self.save_button,self.operation_layout)
+        self.operation_layout.addStretch(1)
 
         self.progress_bar=ProgressBar()
         self.progress_bar.hide()
@@ -70,6 +80,8 @@ class Generate(QFrame):
         self.timetable_preview.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.timetable_preview.setSelectionBehavior(QAbstractItemView.SelectItems)
         self.timetable_preview.clicked.connect(self.on_timetable_preview_clicked)
+        self.timetable_preview.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.timetable_preview.customContextMenuRequested.connect(self.select_target)
         add_widget(self.timetable_preview,self.layout,0)
 
         self.exchange_layout=QHBoxLayout()
@@ -90,17 +102,17 @@ class Generate(QFrame):
         self.target_lesson=ComboBox()
         add_widget(self.target_lesson,self.exchange_layout,0)
 
-        self.separator=SeparatorWidget(orient=Qt.Horizontal)
-        add_widget(self.separator,self.layout,0)
-
-        self.output_title=title("导出",self,self.layout)
-
-        self.hidden_widgets=[self.exchange_label,self.output_title,self.separator,self.target_lesson,self.exchange_button,self.from_lesson,self.preview_mode,self.preview_object,self.timetable_preview]
+        self.hidden_widgets=[self.save_button,self.exchange_label,self.target_lesson,self.exchange_button,self.from_lesson,self.preview_mode,self.preview_object,self.timetable_preview]
         self.hide_widgets()
         # === 设置滚动区域内容 ===
         self.layout.addStretch(1)
         scroll_area.setWidget(view)
         main_layout.addWidget(scroll_area)
+
+    def select_target(self,pos):
+        # 获取点击位置的行列
+        item=self.timetable_preview.itemAt(pos)
+        self.target_lesson.setCurrentText(f"{Time(item.column()+1,item.row()+1)} {item.text().split("\n")[0]}")
 
     def generate_timetable(self):
         try:
@@ -125,6 +137,8 @@ class Generate(QFrame):
 
     def on_timetable_preview_clicked(self):
         try:
+            if self.preview_mode.currentIndex()!=0:
+                return
             self.target_lesson.clear()
             self.exchange_button.setEnabled(False)
             curr_item=self.timetable_preview.currentItem()
@@ -144,10 +158,12 @@ class Generate(QFrame):
                         subjects[0] not in [lesson[1] for lesson in set_lessons] and curr_subjects[0] not in [lesson[1] for lesson in set_lessons] and\
                         subjects[0] not in continue_subjects and curr_subjects[0] not in continue_subjects:
                         item.setBackground(QColor(150,255,150))
+                        item.setToolTip("右键点击可在下拉框中自动选中课程")
                         self.target_lesson.addItem(f"{time} {item.text().split("\n")[0]}",userData=(time,copy.copy(subjects)))
                         self.exchange_button.setEnabled(True)
                     else:
                         item.setBackground(QColor(255,150,150))
+                        item.setToolTip("不可交换")
         except:
             e=traceback.format_exc()
             logging.critical(f"点击课程表出错：\n{e}")
