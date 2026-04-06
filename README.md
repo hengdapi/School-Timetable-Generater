@@ -7,12 +7,12 @@
 </p>
 <div align="center">
 
-![img.png](images/img.png)
 
 ![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)
 [![GPLv3](https://img.shields.io/badge/License-GPLv3-blue?color=#4ec820)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.9+-green.svg)
 
+![img.png](images/img.png)
 </div>
 
 ## 项目介绍
@@ -30,7 +30,7 @@
 
 ## 使用方法（二选一）
 ### 一、自行搭建运行环境
-1. 前往[Python官网](https://python.org)下载并安装Python3.9+版本
+1. 前往[Python官网](https://python.org/downloads)下载并安装Python3.9+版本
 2. 将本项目下载解压到本地
 3. 在项目根目录运行`pip install -r requirements.txt`（报错可搜索“pip换源”）
 4. 双击`main.py`或运行`python main.py`即可启动
