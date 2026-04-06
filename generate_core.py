@@ -1,6 +1,6 @@
 import random,time
 from locals import *
-from PyQt5.QtCore import QThread,pyqtSignal
+from PySide6.QtCore import QThread,Signal
 
 def check(clas: Class,time: Time,subject: Subject) -> bool:
     try:
@@ -44,9 +44,9 @@ def check(clas: Class,time: Time,subject: Subject) -> bool:
         logging.error(f"检查时出错：\n{e}")
         return False
 
-class Generate_thread(QThread):
-    finished_signal=pyqtSignal()  # 生成成功
-    progress_signal=pyqtSignal(tuple)  # 进度信息
+class GenerateThread(QThread):
+    finished_signal=Signal()  # 生成成功
+    progress_signal=Signal(tuple)  # 进度信息
 
     def __init__(self,parent=None):
         super().__init__(parent)
@@ -179,9 +179,3 @@ class Generate_thread(QThread):
         except:
             e=traceback.format_exc()
             logging.critical(f"生成课程表出错：\n{e}")
-
-def generate_timetable(window):
-    generate_thread=Generate_thread()
-    generate_thread.finished_signal.connect(window.on_generation_finished)
-    generate_thread.progress_signal.connect(window.on_progress_update)
-    generate_thread.start()

@@ -1,5 +1,5 @@
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import *
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import *
 from qfluentwidgets import *
 
 class fonts:
@@ -13,23 +13,23 @@ def add_widget(widget,layout:QBoxLayout,spacing=20):
     layout.addWidget(widget)
     layout.addSpacing(spacing)
 
-def label(text: str,label_type,font:QFont,window:QFrame,layout:QBoxLayout,spacing=20):
+def label(text: str,label_type,font:QFont,window,layout:QBoxLayout,spacing=20):
     label = label_type(text, window)
     label.setFont(font)
     add_widget(label,layout,spacing)
     return label
 
-def title(text: str,window:QFrame,layout:QBoxLayout,spacing=20):
+def title(text: str,window,layout:QBoxLayout,spacing=20)->LargeTitleLabel:
     return label(text,LargeTitleLabel,fonts.title,window,layout,spacing)
 
-def biggersubheader(text: str,window:QFrame,layout:QBoxLayout,spacing=20):
+def biggersubheader(text: str,window,layout:QBoxLayout,spacing=20)->SubtitleLabel:
     return label(text,SubtitleLabel,fonts.biggersubheader,window,layout,spacing)
 
-def subheader(text: str,window:QFrame,layout:QBoxLayout,spacing=20):
+def subheader(text: str,window,layout:QBoxLayout,spacing=20)->SubtitleLabel:
     return label(text,SubtitleLabel,fonts.subheader,window,layout,spacing)
 
-def write(text: str,window:QFrame,layout:QBoxLayout,spacing=20):
+def write(text: str,window,layout:QBoxLayout,spacing=20)->BodyLabel:
     return label(text,BodyLabel,fonts.write,window,layout,spacing)
 
-def button(text: str,window:QFrame,layout:QBoxLayout,spacing=20):
+def button(text: str,window,layout:QBoxLayout,spacing=20)->PushButton:
     return label(text,PushButton,fonts.button,window,layout,spacing)

@@ -1,7 +1,7 @@
 import logging
 import traceback
 
-from PyQt5.QtCore import Qt
+from PySide6.QtCore import Qt
 from qfluentwidgets import QConfig,RangeConfigItem,OptionsConfigItem,BoolValidator,ConfigItem,qconfig,RangeValidator,InfoBar,InfoBarPosition
 
 
@@ -11,17 +11,18 @@ class Settings(QConfig):
     show_teachers=OptionsConfigItem("table_style","show_teachers",True,BoolValidator())
     text_font=ConfigItem("table_style","text_font","宋体")
     text_size=ConfigItem("table_style","text_size",9)
+    school_name=ConfigItem("table_style","school_name","学校名称")
+    lessons_time=ConfigItem("table_style","lessons_time",{})
 
-    subjects_info=ConfigItem("lessons_info","subjects_info","")
-    lessons_info=ConfigItem("lessons_info","lessons_info","")
-    teachers_info=ConfigItem("lessons_info","teachers_info","")
+    subjects_info=ConfigItem("lessons_info","subjects_info",{})
+    lessons_info=ConfigItem("lessons_info","lessons_info",{})
+    teachers_info=ConfigItem("lessons_info","teachers_info",{})
+    grades_info=ConfigItem("lessons_info","grades_info",{})
 
-    school_name=ConfigItem("other_info","school_name","学校名称")
-    lessons_time=ConfigItem("other_info","lessons_time","")
-    activity_info=ConfigItem("other_info","activity_info","")
+    activity_info=ConfigItem("activity_info","activity_info",{})
 
-    rule_types=ConfigItem("rules","rule_types","")
-    rules=ConfigItem("rules","rules","")
+    rule_types=ConfigItem("rules","rule_types",{})
+    rules=ConfigItem("rules","rules",{})
 
 def load_settings():
     cfg=Settings()
@@ -31,7 +32,6 @@ cfg=load_settings()
 
 def save_settings():
     try:
-        logging.info(f"正在保存设置")
         # 将内存配置写入文件
         cfg.save()
         logging.info("保存设置成功")

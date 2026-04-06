@@ -1,10 +1,9 @@
 # coding=utf-8
 import os
 from style import *
-from PyQt5.QtWidgets import QFrame,QVBoxLayout
+from PySide6.QtWidgets import QFrame,QVBoxLayout
 
 
-# noinspection PyTypeChecker
 class Home(QFrame):
     def __init__(self,parent=None):
         super().__init__(parent=parent)
@@ -24,7 +23,7 @@ class Home(QFrame):
         self.feedback_layout=QHBoxLayout(self)
         layout.addLayout(self.feedback_layout)
 
-        self.send_issue=PrimaryPushButton("提个issue")
+        self.send_issue=PrimaryPushButton("创建议题")
         add_widget(self.send_issue,self.feedback_layout)
         self.send_issue.setIcon(FluentIcon.GITHUB)
         self.send_issue.setFixedSize(130, 40)

@@ -1,4 +1,7 @@
-PyQt5
+pyside6
 pandas
-PyQt-Fluent-Widgets
 xlrd
+darkdetect
+pywin32
+openpyxl
+pysidesix-frameless-window

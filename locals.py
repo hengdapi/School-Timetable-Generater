@@ -4,7 +4,7 @@ import sys,copy
 from typing import Literal
 
 import pandas as pd
-from PyQt5.QtWidgets import QTableWidgetItem
+from PySide6.QtWidgets import QTableWidgetItem
 from qfluentwidgets import TableWidget
 
 from wr_settings import *
@@ -358,6 +358,12 @@ class Rule:
         for string in self.__dict__:
             ans[str(string)]=str(self.__dict__[string])
         return ans
+
+    def __eq__(self, other):
+        return self.type==other.type and self.__dict__==other.__dict__
+
+    def __hash__(self):
+        return hash(self.__dict__)
 
 # 解析课程信息
 class Results:

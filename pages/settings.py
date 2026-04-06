@@ -1,12 +1,121 @@
 # coding=utf-8
-from PyQt5.QtCore import QTime
-from PyQt5.QtGui import QFontDatabase
-from qfluentwidgets.components.date_time.picker_base import SeparatorWidget
+from PySide6.QtCore import QTime
 
+from qfluentwidgets.components.date_time.picker_base import SeparatorWidget
 from locals import *
 from style import *
 from wr_settings import *
 
+
+class AddRuleMessageBox(MessageBoxBase):
+    def __init__(self,parent=None):
+        super().__init__(parent)
+        self.yesButton.setText("添加规则")
+        self.cancelButton.setText("取消")
+        subheader("添加规则",self,self.viewLayout)
+        rule_types=cfg.rule_types.value
+        self.times=[day+lesson_to_str(lesson) for day in days[1:] for lesson in range(1,cfg.morning_class_num.value+cfg.afternoon_class_num.value+1)]
+        self.string_elements={}
+        self.string_layouts=[]
+
+        self.rule_combo=ComboBox()
+        self.rule_combo.setPlaceholderText("请选择规则类型")
+        for kind,name in rule_types.items():
+            self.rule_combo.addItem(name.replace("|",""),userData=[name,kind])
+        self.rule_combo.setCurrentIndex(-1)
+        add_widget(self.rule_combo,self.viewLayout,0)
+        self.rule_combo.currentIndexChanged.connect(self.show_rule_strings)
+
+    def check_rule(self,new_rule:Rule):
+        new_type=new_rule.type
+        if new_rule in rules:
+            return False,new_rule
+        if new_type in [Rule_type.set_time,Rule_type.avoid_time]:
+            for rule in rules:
+                if rule.type in [Rule_type.set_time,Rule_type.avoid_time,Rule_type.priority_time] and (rule.time==new_rule.time or rule.subject==new_rule.subject):
+                    return False,rule
+        elif new_type==Rule_type.priority_time:
+            for rule in rules:
+                if rule.type==Rule_type.priority_time and rule.time==new_rule.time:
+                    return False,rule
+                elif rule.type==Rule_type.set_time and rule.time==new_rule.time:
+                    return False,rule
+        elif new_type==Rule_type.set_num:
+            for rule in rules:
+                if rule.type==Rule_type.set_num and rule.subject==new_rule.subject:
+                    return False,rule
+        elif new_type==Rule_type.avoid_subject:
+            if new_rule.subjectA==new_rule.subjectB:
+                return False,new_rule
+            for rule in rules:
+                if rule.type==Rule_type.avoid_subject and {rule.subjectA,rule.subjectB}=={new_rule.subjectA,new_rule.subjectB}:
+                    return False,rule
+        elif new_type==Rule_type.avoid_teacher:
+            if new_rule.teacherA==new_rule.teacherB:
+                return False,new_rule
+            for rule in rules:
+                if rule.type==Rule_type.avoid_teacher and {rule.teacherA,rule.teacherB}=={new_rule.teacherA,new_rule.teacherB}:
+                    return False,rule
+        elif new_type==Rule_type.set_continue:
+            for rule in rules:
+                if rule.type==Rule_type.set_continue and rule.subject==new_rule.subject:
+                    return False,rule
+        elif new_type==Rule_type.half_num:
+            for rule in rules:
+                if rule.type==Rule_type.half_num and rule.subject==new_rule.subject:
+                    return False,rule
+        return True,None
+
+    def show_rule_strings(self):
+        name=self.rule_combo.currentData()[0]
+        for layout in self.string_layouts:
+            while layout.count():
+                item=layout.takeAt(0)
+                if item.widget():
+                    item.widget().hide()
+                    item.widget().deleteLater()
+        self.string_elements.clear()
+        name=name.split("|")
+        for string in name:
+            if string[0]=="{" and string[-1]=="}":
+                string_name=string[1:-1]
+                string_layout=QHBoxLayout()
+                self.viewLayout.addLayout(string_layout)
+                name_label=write(f"请填写{string_name}字段：",self,string_layout)
+                combo=EditableComboBox()
+                if "subject" in string_name:
+                    items=cfg.subjects_info.value
+                elif "time" in string_name:
+                    items=self.times
+                elif "number" in string_name:
+                    items=[str(i) for i in range(1,len(cfg.lessons_info.value)+1)]
+                elif "teacher" in string_name:
+                    items=cfg.teachers_info.value
+                elif "class" in string_name:
+                    items=[clas["班级"] for clas in cfg.lessons_info.value]
+                else:
+                    items=["无可选项"]
+                combo.addItems(items)
+                completer=QCompleter(items,combo)
+                combo.setCompleter(completer)
+                add_widget(combo,string_layout)
+                self.string_layouts.append(string_layout)
+                self.string_elements[string_name]=[name_label,combo]
+
+    def validate(self) -> bool:
+        name,kind=self.rule_combo.currentData()
+        new_rule={"type":kind}
+        for string_name,elements in self.string_elements.items():
+            combo: ComboBox=elements[1]
+            if combo.currentText() not in [item.text for item in combo.items]:
+                return False
+            new_rule[string_name]=combo.currentText()
+
+        self.new_rule=Rule(**new_rule)
+        success,rule=self.check_rule(self.new_rule)
+        if not success:
+            settings_error(self,"新规则与现有规则冲突或重复："+str(rule))
+        return success
 
 class Settings(QFrame):
     def save_cfg(self,attr:str,value):
@@ -71,131 +180,39 @@ class Settings(QFrame):
             if cfg.lessons_info.value!="":
                 cfg.lessons_info.value=pd.DataFrame(cfg.lessons_info.value).to_json(orient="records", lines=False, force_ascii=False)
 
-    def show_rule_strings(self):
-        name=self.rule_combo.currentData()[0]
-        for layout in self.string_layouts:
-            while layout.count():
-                item=layout.takeAt(0)
-                if item.widget():
-                    item.widget().hide()
-                    item.widget().deleteLater()
-        self.string_elements.clear()
-        if name is None:
-            self.add_rule_button.setEnabled(False)
-            return
-        self.add_rule_button.setEnabled(True)
-        name=name.split("|")
-        name.reverse()
-        for string in name:
-            if string[0]=="{" and string[-1]=="}":
-                string_name=string[1:-1]
-                string_layout=QHBoxLayout()
-                self.layout.insertLayout(self.layout.indexOf(self.rule_list)+3,string_layout)
-                name_label=write(f"请填写{string_name}字段：",self,string_layout)
-                combo=EditableComboBox()
-                if "subject" in string_name:
-                    items=cfg.subjects_info.value
-                elif "time" in string_name:
-                    items=self.times
-                elif "number" in string_name:
-                    items=[str(i) for i in range(1,len(cfg.lessons_info.value)+1)]
-                elif "teacher" in string_name:
-                    items=cfg.teachers_info.value
-                elif "class" in string_name:
-                    items=[clas["班级"] for clas in cfg.lessons_info.value]
-                else:
-                    items=["无可选项"]
-                combo.addItems(items)
-                completer=QCompleter(items,combo)
-                combo.setCompleter(completer)
-                add_widget(combo,string_layout)
-                self.string_layouts.append(string_layout)
-                self.string_elements[string_name]=[name_label,combo]
 
     def add_rule(self):
-        name,kind=self.rule_combo.currentData()
-        new_rule={"type":kind}
-        if name is None:
-            return
-        for string_name,elements in self.string_elements.items():
-            combo:ComboBox=elements[1]
-            if combo.currentText() not in [item.text for item in combo.items]:
-                return
-            new_rule[string_name]=combo.currentText()
-
-        new_rule=Rule(**new_rule)
-        success,rule=self.check_rule(new_rule)
-        if success:
+        rule_dialog=AddRuleMessageBox(self.parent().parent().parent())
+        if rule_dialog.exec():
+            new_rule=rule_dialog.new_rule
             rules.append(new_rule)
             item=QListWidgetItem(str(new_rule))
             item.setData(Qt.UserRole,new_rule)
             self.rule_list.addItem(item)
             cfg.rules.value.append(new_rule.to_dict())
             save_settings()
-        else:
-            settings_error(self,"新规则与现有规则冲突或重复："+str(rule))
 
-    def remove_rule(self):
+    def del_rule(self):
         try:
             selected_rule=self.rule_list.selectedItems()[0]
             rules.remove(selected_rule.data(Qt.UserRole))
             self.rule_list.takeItem(self.rule_list.row(selected_rule))
-            self.remove_rule_button.setEnabled(len(rules))
+            self.del_rule_button.setEnabled(bool(len(rules)))
             cfg.rules.value.remove(selected_rule.data(Qt.UserRole).to_dict())
             save_settings()
         except:
             e=traceback.format_exc()
             logging.error(f"删除规则时出错：\n{e}")
 
-    def check_rule(self,new_rule:Rule):
-        new_type=new_rule.type
-        if new_type in [Rule_type.set_time,Rule_type.avoid_time,Rule_type.priority_time]:
-            for rule in rules:
-                if rule.type in [Rule_type.set_time,Rule_type.avoid_time,Rule_type.priority_time] and rule.time==new_rule.time and rule.subject==new_rule.subject:
-                    return False,rule
-        elif new_type==Rule_type.set_time:
-            for rule in rules:
-                if rule.type==Rule_type.set_time and rule.time==new_rule.time:
-                    return False,rule
-                elif rule.type==Rule_type.priority_time and rule.time==new_rule.time:
-                    return False,rule
-        elif new_type==Rule_type.priority_time:
-            for rule in rules:
-                if rule.type==Rule_type.priority_time and rule.time==new_rule.time:
-                    return False,rule
-                elif rule.type==Rule_type.set_time and rule.time==new_rule.time:
-                    return False,rule
-        elif new_type==Rule_type.set_num:
-            for rule in rules:
-                if rule.type==Rule_type.set_num and rule.subject==new_rule.subject:
-                    return False,rule
-        elif new_type==Rule_type.avoid_subject:
-            if new_rule.subjectA==new_rule.subjectB:
-                return False,new_rule
-            for rule in rules:
-                if rule.type==Rule_type.avoid_subject and {rule.subjectA,rule.subjectB}=={new_rule.subjectA,new_rule.subjectB}:
-                    return False,rule
-        elif new_type==Rule_type.avoid_teacher:
-            if new_rule.teacherA==new_rule.teacherB:
-                return False,new_rule
-            for rule in rules:
-                if rule.type==Rule_type.avoid_teacher and {rule.teacherA,rule.teacherB}=={new_rule.teacherA,new_rule.teacherB}:
-                    return False,rule
-        elif new_type==Rule_type.set_continue:
-            for rule in rules:
-                if rule.type==Rule_type.set_continue and rule.subject==new_rule.subject:
-                    return False,rule
-        return True,None
-
     def lesson_time_changed(self,lesson:int,end:bool,time:QTime):
         cfg.lessons_time.value[str(lesson)][end]=[time.hour(),time.minute()]
         save_settings()
 
     def show_lesson_time_group(self):
-        self.layout.removeWidget(self.lesson_length_group)
         self.lesson_length_group.hide()
+        self.lesson_length_group.deleteLater()
         status=self.lesson_length_group.isExpand
-        self.lesson_length_group=ExpandGroupSettingCard(FluentIcon.STOP_WATCH,"课程起止时间")
+        self.lesson_length_group=ExpandGroupSettingCard(FluentIcon.STOP_WATCH,"课程起止时间","显示在对应课时下方")
         for lesson in range(1,cfg.morning_class_num.value+cfg.afternoon_class_num.value+1):
             curr_time=Time(1,lesson)
             lesson_length_card=SettingCard("",curr_time.to_str(False,True))
@@ -210,7 +227,7 @@ class Settings(QFrame):
             lesson_length_card.hBoxLayout.addWidget(end_time)
             lesson_length_card.hBoxLayout.addSpacing(20)
             self.lesson_length_group.addGroupWidget(lesson_length_card)
-        self.layout.insertWidget(self.layout.indexOf(self.school_name_card)+1,self.lesson_length_group)
+        self.layout.insertWidget(self.layout.indexOf(self.afternoon_class_num)+1,self.lesson_length_group)
         self.lesson_length_group.setExpand(status)
 
     def show_activities(self):
@@ -231,6 +248,7 @@ class Settings(QFrame):
             end_timePicker.timeChanged.connect(self.save_activity)
             self.activity_table.setCellWidget(r,2,end_timePicker)
             r+=1
+        self.del_activity_button.setEnabled(bool(self.activity_table.selectedItems()))
         self.save_activity_lock=False
 
     def add_activity(self):
@@ -260,12 +278,74 @@ class Settings(QFrame):
         cfg.activity_info.value=activity_info
         save_settings()
 
+    def show_grades(self):
+        self.save_grade_lock=True
+        self.grade_table.setRowCount(len(cfg.grades_info.value))
+        self.grade_table.setFixedHeight(min(300,len(cfg.grades_info.value)*40+40))
+        r=0
+        left_classes=set(results.class_names)
+        for classes in cfg.grades_info.value.values():
+            left_classes-=set(classes)
+        left_classes=list(left_classes)
+        left_classes.sort(key=lambda clas:results.class_names.index(clas))
+        for grade,classes in cfg.grades_info.value.items():
+            item=QTableWidgetItem(grade)
+            item.setTextAlignment(Qt.AlignCenter)
+            self.grade_table.setItem(r,0,item)
+            curr_classes=classes+left_classes
+            if not self.grade_table.cellWidget(r,1):
+                classes_combo=MultiSelectComboBox()
+                classes_combo.setChipsMode(True)
+                classes_combo.addItems(curr_classes)
+                if classes:
+                    classes_combo.setSelectedIndices(set(range(len(classes))))
+                self.grade_table.setCellWidget(r,1,classes_combo)
+                classes_combo.selectionChanged.connect(self.save_grade)
+            else:
+                classes_combo:MultiSelectComboBox=self.grade_table.cellWidget(r,1)
+                classes_combo.clear()
+                classes_combo.addItems(curr_classes)
+                if classes:
+                    classes_combo.setSelectedIndices(set(range(len(classes))))
+            r+=1
+        self.save_grade_lock=False
+
+    def add_grade(self):
+        cfg.grades_info.value[f"新年级{len(cfg.grades_info.value)+1}"]=[]
+        save_settings()
+        self.show_grades()
+
+    def del_grade(self):
+        cfg.grades_info.value.pop(self.grade_table.item(self.grade_table.currentRow(),0).text())
+        save_settings()
+        self.show_grades()
+        self.del_grade_button.setEnabled(bool(self.grade_table.selectedItems()))
+
+    def save_grade(self):
+        if self.save_grade_lock:
+            return
+        self.save_grade_lock=True
+        curr_grade_name=self.grade_table.item(self.grade_table.currentRow(),0).text()
+        grade_names=list(cfg.grades_info.value.keys())
+        if grade_names.count(curr_grade_name)>1:
+            InfoBar.error("请勿设置名称重复的年级",f"名称“{curr_grade_name}”重复",parent=self.parent(),duration=2000)
+            self.save_grade_lock=False
+            return
+        new_grade_info={}
+        for grade in range(self.grade_table.rowCount()):
+            grade_name=self.grade_table.item(grade,0).text()
+            new_grade_info[grade_name]=[item.text for item in self.grade_table.cellWidget(grade,1).selectedItems()]
+        cfg.grades_info.value=new_grade_info
+        save_settings()
+        self.show_grades()
+        self.save_grade_lock=False
+
     def __init__(self,parent=None):
         try:
             super().__init__(parent=parent)
             logging.info("开始加载设置页面")
             self.setObjectName("Settings")
-            main_layout = QVBoxLayout(self)
+            main_layout=QVBoxLayout(self)
             main_layout.setContentsMargins(20,20,0,0)
 
             self.scroll_area=SingleDirectionScrollArea(orient=Qt.Vertical)
@@ -281,13 +361,23 @@ class Settings(QFrame):
             # 表格样式设置区域
             biggersubheader("表格样式",self,self.layout)
 
+            self.school_name_card=SettingCard(FluentIcon.INFO,"学校名称","设置学校名称（作为表头）")
+            self.school_name=LineEdit()
+            self.school_name.setText(cfg.school_name.value)
+            add_widget(self.school_name,self.school_name_card.hBoxLayout)
+            self.school_name.textChanged.connect(lambda :self.save_cfg("school_name",self.school_name.text()))
+            add_widget(self.school_name_card,self.layout,0)
+
             # 设置每天上午和下午的课程数量
-            morning_class_num=RangeSettingCard(cfg.morning_class_num,FluentIcon.FLAG,title="每天上午上课数量",content="学校每天上午的上课数量")
-            morning_class_num.valueChanged.connect(self.update_table_preview)
-            add_widget(morning_class_num,self.layout,0)
-            afternoon_class_num=RangeSettingCard(cfg.afternoon_class_num,FluentIcon.FLAG,title="每天下午上课数量",content="学校每天下午的上课数量")
-            afternoon_class_num.valueChanged.connect(self.update_table_preview)
-            add_widget(afternoon_class_num,self.layout,0)
+            self.morning_class_num=RangeSettingCard(cfg.morning_class_num,FluentIcon.FLAG,title="每天上午上课数量",content="学校每天上午的上课数量")
+            self.morning_class_num.valueChanged.connect(self.update_table_preview)
+            add_widget(self.morning_class_num,self.layout,0)
+            self.afternoon_class_num=RangeSettingCard(cfg.afternoon_class_num,FluentIcon.FLAG,title="每天下午上课数量",content="学校每天下午的上课数量")
+            self.afternoon_class_num.valueChanged.connect(self.update_table_preview)
+            add_widget(self.afternoon_class_num,self.layout,0)
+
+            self.lesson_length_group=ExpandGroupSettingCard(FluentIcon.STOP_WATCH,"课程起止时间（显示在课时下方）")
+            add_widget(self.lesson_length_group,self.layout,0)
 
             # 设置是否显示教师姓名和表格排版方式
             show_teachers=SwitchSettingCard(configItem=cfg.show_teachers,icon=FluentIcon.TAG,title="显示教师姓名",content="在课程名称下方标注任课教师姓名")
@@ -295,9 +385,7 @@ class Settings(QFrame):
             add_widget(show_teachers,self.layout,0)
 
             text_style=SettingCard(FluentIcon.FONT,"文字样式","设置课程表文字样式")
-            add_widget(text_style,self.layout)
-            self.font_combo=ComboBox()
-            self.font_combo.addItems(QFontDatabase().families())
+            self.font_combo=FontComboBox()
             self.font_combo.setCurrentText(cfg.text_font.value)
             self.font_combo.currentTextChanged.connect(lambda :self.save_cfg("text_font",self.font_combo.currentText()))
             add_widget(self.font_combo,text_style.hBoxLayout)
@@ -307,6 +395,7 @@ class Settings(QFrame):
             self.text_size.setValue(cfg.text_size.value)
             self.text_size.valueChanged.connect(lambda :self.save_cfg("text_size",self.text_size.value()))
             add_widget(self.text_size,text_style.hBoxLayout)
+            add_widget(text_style,self.layout)
 
             # 预览课程表
             subheader("预览",self,self.layout)
@@ -316,6 +405,7 @@ class Settings(QFrame):
             self.table_style_preview.setEditTriggers(TableWidget.NoEditTriggers)
             add_widget(self.table_style_preview,self.layout)
 
+            self.update_table_preview()
             # 课程信息设置区域
             biggersubheader("课程信息",self,self.layout)
 
@@ -338,78 +428,80 @@ class Settings(QFrame):
                 subjects_table_keys.append(subject+" - 任课老师")
             cfg.subjects_info.value=new_subjects
 
+            subheader("年级信息",self,self.layout)
+
+            grade_operations_layout=QHBoxLayout()
+            self.layout.addLayout(grade_operations_layout)
+
+            self.add_grade_button=button("添加年级",self,grade_operations_layout,0)
+            self.add_grade_button.setIcon(FluentIcon.ADD)
+            self.add_grade_button.setFixedWidth(200)
+            self.add_grade_button.clicked.connect(self.add_grade)
+
+            self.del_grade_button=button("删除年级",self,grade_operations_layout,0)
+            self.del_grade_button.setIcon(FluentIcon.REMOVE)
+            self.del_grade_button.setFixedWidth(200)
+            self.del_grade_button.setEnabled(False)
+            self.del_grade_button.clicked.connect(self.del_grade)
+
+            self.save_grade_lock=True
+            self.grade_table=TableWidget()
+            self.grade_table.setColumnCount(2)
+            self.grade_table.setHorizontalHeaderLabels(["年级名称","所含班级"])
+            self.grade_table.setColumnWidth(1,1000)
+            self.grade_table.verticalHeader().hide()
+            self.grade_table.clicked.connect(lambda :self.del_grade_button.setEnabled(bool(self.grade_table.selectedItems())))
+            self.grade_table.cellChanged.connect(self.save_grade)
+            self.show_grades()
+            add_widget(self.grade_table,self.layout)
+            self.save_grade_lock=False
+
+            grade_operations_layout.addStretch(1)
             add_widget(SeparatorWidget(orient=Qt.Horizontal),self.layout)
 
             # 生成规则设置区域
             biggersubheader("生成规则",self,self.layout)
-            rule_types=cfg.rule_types.value
-            self.times=[day+lesson_to_str(lesson) for day in days[1:] for lesson in range(1,cfg.morning_class_num.value+cfg.afternoon_class_num.value+1)]
-            self.string_elements={}
-            self.string_layouts=[]
 
             rule_list_layout=QHBoxLayout()
             self.layout.addLayout(rule_list_layout)
-            write("当前规则：",self,rule_list_layout)
-            self.remove_rule_button=button("删除规则",self,rule_list_layout)
-            self.remove_rule_button.setEnabled(False)
-            self.remove_rule_button.setIcon(FluentIcon.REMOVE)
-            self.remove_rule_button.setFixedWidth(200)
-            self.remove_rule_button.clicked.connect(self.remove_rule)
 
-            rule_list_layout.addWidget(self.remove_rule_button)
+            self.add_rule_button=button("添加规则",self,rule_list_layout,0)
+            self.add_rule_button.setIcon(FluentIcon.ADD)
+            self.add_rule_button.setFixedWidth(200)
+            self.add_rule_button.clicked.connect(self.add_rule)
+
+            self.del_rule_button=button("删除规则",self,rule_list_layout)
+            self.del_rule_button.setEnabled(False)
+            self.del_rule_button.setIcon(FluentIcon.REMOVE)
+            self.del_rule_button.setFixedWidth(200)
+            self.del_rule_button.clicked.connect(self.del_rule)
+            rule_list_layout.addStretch(1)
+
             self.rule_list=ListWidget()
             self.rule_list.setFixedHeight(200)
-            self.rule_list.itemClicked.connect(lambda :self.remove_rule_button.setEnabled(True))
+            self.rule_list.itemClicked.connect(lambda :self.del_rule_button.setEnabled(True))
             for rule in rules:
                 item=QListWidgetItem(str(rule))
                 item.setData(Qt.UserRole,rule)
                 self.rule_list.addItem(item)
             add_widget(self.rule_list,self.layout)
 
-            rule_layout=QHBoxLayout()
-            self.layout.addLayout(rule_layout)
-            self.rule_type_label=write("规则类型：",self,rule_layout)
-            self.rule_type_label.setFixedWidth(150)
-
-            self.rule_combo=ComboBox()
-            self.rule_combo.addItem("请选择规则类型",userData=[None,None])
-            for kind,name in rule_types.items():
-                self.rule_combo.addItem(name.replace("|",""),userData=[name,kind])
-            add_widget(self.rule_combo,rule_layout)
-            self.rule_combo.currentIndexChanged.connect(self.show_rule_strings)
-
-            self.add_rule_button=button("添加规则",self,rule_layout,0)
-            self.add_rule_button.setEnabled(False)
-            self.add_rule_button.setIcon(FluentIcon.ADD)
-            self.add_rule_button.setFixedWidth(200)
-            self.add_rule_button.clicked.connect(self.add_rule)
 
             add_widget(SeparatorWidget(orient=Qt.Horizontal),self.layout)
-            # 其他信息
-            biggersubheader("其他信息",self,self.layout)
-            self.school_name_card=SettingCard(FluentIcon.INFO,"学校名称","设置学校名称")
-            add_widget(self.school_name_card,self.layout,0)
-            self.school_name=LineEdit()
-            self.school_name.setText(cfg.school_name.value)
-            add_widget(self.school_name,self.school_name_card.hBoxLayout)
-            self.school_name.textChanged.connect(lambda :self.save_cfg("school_name",self.school_name.text()))
 
-            self.lesson_length_group=ExpandGroupSettingCard(FluentIcon.STOP_WATCH,"课程起止时间")
-            add_widget(self.lesson_length_group,self.layout)
-            self.update_table_preview()
-
-            subheader("活动信息",self,self.layout)
+            biggersubheader("活动信息",self,self.layout)
 
             self.activity_operation_layout=QHBoxLayout()
             self.layout.addLayout(self.activity_operation_layout)
 
-            self.add_activity_button=button("添加活动",self,self.activity_operation_layout)
+            self.add_activity_button=button("添加活动",self,self.activity_operation_layout,0)
             self.add_activity_button.setIcon(FluentIcon.ADD)
             self.add_activity_button.clicked.connect(self.add_activity)
             self.add_activity_button.setFixedWidth(200)
             self.del_activity_button=button("删除活动",self,self.activity_operation_layout)
             self.del_activity_button.setIcon(FluentIcon.REMOVE)
             self.del_activity_button.setFixedWidth(200)
+            self.del_activity_button.setEnabled(False)
             self.del_activity_button.clicked.connect(self.del_activity)
             self.activity_operation_layout.addStretch(1)
 
@@ -422,6 +514,7 @@ class Settings(QFrame):
             self.activity_table.verticalHeader().hide()
             self.show_activities()
             self.activity_table.cellChanged.connect(self.save_activity)
+            self.activity_table.clicked.connect(lambda :self.del_activity_button.setEnabled(True))
             add_widget(self.activity_table,self.layout)
 
             self.scroll_area.setWidget(view)

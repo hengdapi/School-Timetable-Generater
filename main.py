@@ -1,12 +1,13 @@
 # coding=utf-8
 import sys
-from PyQt5 import QtWidgets
-from PyQt5.QtGui import QIcon,QFont
-from PyQt5.QtCore import Qt,QCoreApplication,QLocale,QSize,QEventLoop,QTimer
+from PySide6 import QtWidgets
+from PySide6.QtGui import QIcon,QFont
+from PySide6.QtCore import QLocale,QSize
 from qfluentwidgets import MSFluentWindow,SplashScreen,FluentTranslator,setThemeColor,setTheme,Theme
 from qfluentwidgets.common.icon import FluentIcon
 from pages import home,settings,generate
 from qframelesswindow.utils import getSystemAccentColor
+from qframelesswindow import StandardTitleBar
 
 class Window(MSFluentWindow):
     def __init__(self):
@@ -27,25 +28,21 @@ class Window(MSFluentWindow):
         )
 
         #启动页面
-        self.splashScreen=SplashScreen(self.windowIcon(),self)
-        self.splashScreen.setIconSize(QSize(102,102))
+        splashScreen=SplashScreen(self.windowIcon(),self)
+        splashScreen.setIconSize(QSize(150,150))
         self.show()
-        loop=QEventLoop(self)
-        QTimer.singleShot(500,loop.quit)
-        loop.exec()
-        self.splashScreen.finish()
 
-        self.addSubInterface(home.Home(self),FluentIcon.HOME,"主页")
-        self.addSubInterface(settings.Settings(self),FluentIcon.SETTING,"设置")
-        self.addSubInterface(generate.Generate(self),FluentIcon.BRUSH,"生成&导出")
+        self.addSubInterface(home.Home(),FluentIcon.HOME,"主页")
+        self.addSubInterface(settings.Settings(),FluentIcon.SETTING,"设置")
+        self.addSubInterface(generate.Generate(),FluentIcon.BRUSH,"生成")
+
+        splashScreen.finish()
 
 
 if __name__ == '__main__':
-    QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
     app=QtWidgets.QApplication(sys.argv)
     translator=FluentTranslator(QLocale(QLocale.Chinese,QLocale.China))
     app.installTranslator(translator)
     ui=Window()
     ui.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

@@ -1,7 +1,9 @@
+import os
+
 from style import *
 from generate_core import *
-from save_core import save_timetable
-from PyQt5.QtCore import Qt
+from save_core import SaveThread
+from PySide6.QtCore import Qt
 import time
 
 class Generate(QFrame):
@@ -50,7 +52,7 @@ class Generate(QFrame):
         self.save_button.setText("保存课程表")
         self.save_button.setIcon(FluentIcon.SAVE)
         self.save_button.setFixedSize(160,40)
-        self.save_button.clicked.connect(lambda :save_timetable(self))
+        self.save_button.clicked.connect(self.save_timetable)
         add_widget(self.save_button,self.operation_layout)
         self.operation_layout.addStretch(1)
 
@@ -58,7 +60,7 @@ class Generate(QFrame):
         self.progress_bar.hide()
         add_widget(self.progress_bar,self.layout,0)
 
-        self.log_label:QLabel=write("",self,self.layout)
+        self.log_label:BodyLabel=write("",self,self.layout)
         self.log_label.hide()
         add_widget(self.log_label,self.layout,0)
 
@@ -112,7 +114,10 @@ class Generate(QFrame):
     def select_target(self,pos):
         # 获取点击位置的行列
         item=self.timetable_preview.itemAt(pos)
-        self.target_lesson.setCurrentText(f"{Time(item.column()+1,item.row()+1)} {item.text().split("\n")[0]}")
+        curr_text=f"{Time(item.column()+1,item.row()+1)} {item.text().split("\n")[0]}"
+        self.target_lesson.setCurrentText(curr_text)
+        if self.target_lesson.currentText()==curr_text:
+            self.exchange_lesson()
 
     def generate_timetable(self):
         try:
@@ -127,7 +132,7 @@ class Generate(QFrame):
 
             # 创建并启动线程
             self.generate_start_time=time.time()
-            self.generate_thread=Generate_thread()
+            self.generate_thread=GenerateThread()
             self.generate_thread.finished_signal.connect(self.on_generation_finished)
             self.generate_thread.progress_signal.connect(self.on_progress_update)
             self.generate_thread.start()
@@ -156,14 +161,16 @@ class Generate(QFrame):
                         (len(curr_subjects)==1 and check(clas,time,curr_subjects[0]) or
                         len(curr_subjects)==2 and check(clas,time,curr_subjects[0]) and check(clas,time,curr_subjects[1])) and\
                         subjects[0] not in [lesson[1] for lesson in set_lessons] and curr_subjects[0] not in [lesson[1] for lesson in set_lessons] and\
-                        subjects[0] not in continue_subjects and curr_subjects[0] not in continue_subjects:
+                        not subjects[0].continue_lesson and not curr_subjects[0].continue_lesson:
                         item.setBackground(QColor(150,255,150))
-                        item.setToolTip("右键点击可在下拉框中自动选中课程")
+                        item.setToolTip("右键点击可交换")
                         self.target_lesson.addItem(f"{time} {item.text().split("\n")[0]}",userData=(time,copy.copy(subjects)))
                         self.exchange_button.setEnabled(True)
                     else:
                         item.setBackground(QColor(255,150,150))
                         item.setToolTip("不可交换")
+            curr_item.setBackground(QColor(255,255,200))
+            curr_item.setToolTip("当前选中")
         except:
             e=traceback.format_exc()
             logging.critical(f"点击课程表出错：\n{e}")
@@ -274,3 +281,12 @@ class Generate(QFrame):
         except:
             e=traceback.format_exc()
             logging.critical(f"生成课程表出错：\n{e}")
+
+    def save_timetable(self):
+        filename,_=QFileDialog.getSaveFileName(self,"保存课程表","","Microsoft Excel 工作表(*.xlsx);;Microsoft Excel 97-2003 工作表(*.xls)")
+        if not filename:
+            return
+        logging.info(f"保存课程表文件名：{filename}")
+        name,ext=os.path.splitext(filename)
+        save_thread=SaveThread(name,ext,self)
+        save_thread.start()
