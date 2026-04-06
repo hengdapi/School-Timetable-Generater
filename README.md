@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="40%" align="center" src="images/logo.png" alt="logo">
+  <img width="20%" align="center" src="images/logo.png" alt="logo">
 </p>
 <h1 align="center">课程表生成器</h1>
 <p align="center">
