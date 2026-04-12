@@ -23,7 +23,8 @@ class Home(QFrame):
         self.feedback_layout=QHBoxLayout(self)
         layout.addLayout(self.feedback_layout)
 
-        self.send_issue=PrimaryPushButton("创建议题")
+        self.send_issue=PrimaryPushButton()
+        self.send_issue.setText("创建议题")
         add_widget(self.send_issue,self.feedback_layout)
         self.send_issue.setIcon(FluentIcon.GITHUB)
         self.send_issue.setFixedSize(130, 40)

@@ -7,7 +7,6 @@ from qfluentwidgets import MSFluentWindow,SplashScreen,FluentTranslator,setTheme
 from qfluentwidgets.common.icon import FluentIcon
 from pages import home,settings,generate
 from qframelesswindow.utils import getSystemAccentColor
-from qframelesswindow import StandardTitleBar
 
 class Window(MSFluentWindow):
     def __init__(self):

@@ -283,10 +283,19 @@ class Generate(QFrame):
             logging.critical(f"生成课程表出错：\n{e}")
 
     def save_timetable(self):
-        filename,_=QFileDialog.getSaveFileName(self,"保存课程表","","Microsoft Excel 工作表(*.xlsx);;Microsoft Excel 97-2003 工作表(*.xls)")
-        if not filename:
-            return
+        # filename,_=QFileDialog.getSaveFileName(self,"保存课程表","","Microsoft Excel 工作表(*.xlsx);;Microsoft Excel 97-2003 工作表(*.xls)")
+        # if not filename:
+        #     return
+        filename="E:/信息科技/Python/自创作品/课程表生成器/1.xlsx"
         logging.info(f"保存课程表文件名：{filename}")
         name,ext=os.path.splitext(filename)
         save_thread=SaveThread(name,ext,self)
+        save_thread.success.connect(self.on_save_success)
+        save_thread.error.connect(self.on_save_error)
         save_thread.start()
+
+    def on_save_success(self):
+        InfoBar.success("课程表保存成功！","",parent=self)
+
+    def on_save_error(self,error):
+        InfoBar.error("课程表保存失败！",error,parent=self,duration=-1)

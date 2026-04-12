@@ -10,7 +10,7 @@ from qfluentwidgets import TableWidget
 from wr_settings import *
 
 sys.setrecursionlimit(10000)
-logging.basicConfig(format="%(levelname)s %(filename)s %(funcName)s %(lineno)d行:\t%(message)s",
+logging.basicConfig(format="[%(levelname)s] %(filename)s %(funcName)s %(lineno)d行:\t%(message)s",
                     level=logging.INFO)
 # ,filename="log.txt",filemode="w",encoding="utf-8"
 def lesson_to_str(lesson):
