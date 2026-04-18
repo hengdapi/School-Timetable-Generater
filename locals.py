@@ -141,6 +141,33 @@ class Time:
     def all_week(self):
         return Time(self.day,self.lesson,"all")
 
+    @property
+    def next(self):
+        next_time=self.all_week
+        if self.lesson==cfg.morning_class_num.value+cfg.afternoon_class_num.value:
+            if self.day==5:
+                next_time.day=next_time.lesson=1
+            else:
+                next_time.day+=1
+                next_time.lesson=1
+        else:
+            next_time.lesson+=1
+        return next_time
+
+    @property
+    def prev(self):
+        prev_time=self.all_week
+        if self.lesson==1:
+            if self.day==1:
+                prev_time.day=5
+                prev_time.lesson=cfg.morning_class_num.value+cfg.afternoon_class_num.value
+            else:
+                prev_time.day-=1
+                prev_time.lesson=cfg.morning_class_num.value+cfg.afternoon_class_num.value
+        else:
+            prev_time.lesson-=1
+        return prev_time
+
 class Teacher:
     """
     教师类，用于管理教师的课程时间
@@ -280,7 +307,7 @@ class Class:
 
     def add_lesson(self,time:Time,subject:Subject):
         logging.debug(f"在 {self.name} 的 {time} 安排 {subject}")
-        subject.get_teacher(self).add_lesson(time,self,subject)
+        self.get_teacher(subject).add_lesson(time,self,subject)
         time=time.all_week
         if time in self.timetable:
             self.timetable[time].append(subject)
@@ -293,7 +320,7 @@ class Class:
         subjects=self.timetable.get(time.all_week)
         if subjects:
             logging.debug(f"删除 {self} {time} 的 {subject}")
-            subject.get_teacher(self).remove_lesson(time)
+            self.get_teacher(subject).remove_lesson(time)
             time=time.all_week
             self.timetable[time].remove(subject)
             subject.remove_lesson(self,time)
