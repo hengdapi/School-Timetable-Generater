@@ -140,6 +140,19 @@ class Settings(QFrame):
         self.table_style_preview.setFixedHeight(50*self.table_style_preview.rowCount()+40)
         self.show_lesson_time_group()
 
+    def show_lessons_info(self):
+        lessons_info=pd.DataFrame(cfg.lessons_info.value)
+        display_df_in_table(self.lessons_info_table,lessons_info)
+
+        # 保存学科信息
+        new_subjects=[lessons_info.keys()[i][:-5] for i in range(1,len(lessons_info.keys()),2)]
+        subjects_table_keys=["班级"]
+        for subject in new_subjects:
+            subjects_table_keys.append(subject+" - 课时")
+            subjects_table_keys.append(subject+" - 任课老师")
+        cfg.subjects_info.value=new_subjects
+        save_settings()
+
     def pick_lessons_info(self):
         user_info_file,_=QFileDialog.getOpenFileName(
             self,
@@ -173,6 +186,7 @@ class Settings(QFrame):
                 new_teachers=[x for x in new_teachers if not pd.isna(x)]
                 cfg.teachers_info.value=list(new_teachers)
                 save_settings()
+                self.show_lessons_info()
             except:
                 e=traceback.format_exc()
                 logging.error(f"解析课程信息文件时出错：\n{e}")
@@ -227,7 +241,7 @@ class Settings(QFrame):
             lesson_length_card.hBoxLayout.addWidget(end_time)
             lesson_length_card.hBoxLayout.addSpacing(20)
             self.lesson_length_group.addGroupWidget(lesson_length_card)
-        self.layout.insertWidget(self.layout.indexOf(self.afternoon_class_num)+1,self.lesson_length_group)
+        self.layout.insertWidget(self.layout.indexOf(self.school_name_card)+1,self.lesson_length_group)
         self.lesson_length_group.setExpand(status)
 
     def show_activities(self):
@@ -295,7 +309,6 @@ class Settings(QFrame):
             curr_classes=classes+left_classes
             if not self.grade_table.cellWidget(r,1):
                 classes_combo=MultiSelectComboBox()
-                classes_combo.setChipsMode(True)
                 classes_combo.addItems(curr_classes)
                 if classes:
                     classes_combo.setSelectedIndices(set(range(len(classes))))
@@ -358,54 +371,6 @@ class Settings(QFrame):
 
             self.title = title("设置",self,self.layout)
 
-            # 表格样式设置区域
-            biggersubheader("表格样式",self,self.layout)
-
-            self.school_name_card=SettingCard(FluentIcon.INFO,"学校名称","设置学校名称（作为表头）")
-            self.school_name=LineEdit()
-            self.school_name.setText(cfg.school_name.value)
-            add_widget(self.school_name,self.school_name_card.hBoxLayout)
-            self.school_name.textChanged.connect(lambda :self.save_cfg("school_name",self.school_name.text()))
-            add_widget(self.school_name_card,self.layout,0)
-
-            # 设置每天上午和下午的课程数量
-            self.morning_class_num=RangeSettingCard(cfg.morning_class_num,FluentIcon.FLAG,title="每天上午上课数量",content="学校每天上午的上课数量")
-            self.morning_class_num.valueChanged.connect(self.update_table_preview)
-            add_widget(self.morning_class_num,self.layout,0)
-            self.afternoon_class_num=RangeSettingCard(cfg.afternoon_class_num,FluentIcon.FLAG,title="每天下午上课数量",content="学校每天下午的上课数量")
-            self.afternoon_class_num.valueChanged.connect(self.update_table_preview)
-            add_widget(self.afternoon_class_num,self.layout,0)
-
-            self.lesson_length_group=ExpandGroupSettingCard(FluentIcon.STOP_WATCH,"课程起止时间（显示在课时下方）")
-            add_widget(self.lesson_length_group,self.layout,0)
-
-            # 设置是否显示教师姓名和表格排版方式
-            show_teachers=SwitchSettingCard(configItem=cfg.show_teachers,icon=FluentIcon.TAG,title="显示教师姓名",content="在课程名称下方标注任课教师姓名")
-            show_teachers.checkedChanged.connect(self.update_table_preview)
-            add_widget(show_teachers,self.layout,0)
-
-            text_style=SettingCard(FluentIcon.FONT,"文字样式","设置课程表文字样式")
-            self.font_combo=FontComboBox()
-            self.font_combo.setCurrentText(cfg.text_font.value)
-            self.font_combo.currentTextChanged.connect(lambda :self.save_cfg("text_font",self.font_combo.currentText()))
-            add_widget(self.font_combo,text_style.hBoxLayout)
-
-            self.text_size=SpinBox()
-            self.text_size.setRange(1,100)
-            self.text_size.setValue(cfg.text_size.value)
-            self.text_size.valueChanged.connect(lambda :self.save_cfg("text_size",self.text_size.value()))
-            add_widget(self.text_size,text_style.hBoxLayout)
-            add_widget(text_style,self.layout)
-
-            # 预览课程表
-            subheader("预览",self,self.layout)
-            self.table_style_preview=TableWidget()
-            self.table_style_preview.verticalHeader().setDefaultSectionSize(50)
-            self.table_style_preview.horizontalHeader().setDefaultSectionSize(155)
-            self.table_style_preview.setEditTriggers(TableWidget.NoEditTriggers)
-            add_widget(self.table_style_preview,self.layout)
-
-            self.update_table_preview()
             # 课程信息设置区域
             biggersubheader("课程信息",self,self.layout)
 
@@ -413,20 +378,19 @@ class Settings(QFrame):
             self.user_info_file=PushSettingCard(text="选择文件",icon=FluentIcon.INFO,title="课程信息文件",content="存储任课老师及课时、班级信息的表格")
             add_widget(self.user_info_file,self.layout)
             self.user_info_file.clicked.connect(self.pick_lessons_info)
-            lessons_info=pd.DataFrame(cfg.lessons_info.value)
-            lessons_info_table=TableWidget()
-            display_df_in_table(lessons_info_table,lessons_info)
-            lessons_info_table.setFixedHeight(500)
-            lessons_info_table.setEditTriggers(TableWidget.NoEditTriggers)
-            add_widget(lessons_info_table,self.layout)
+            self.lessons_info_table=TableWidget()
+            self.show_lessons_info()
+            self.lessons_info_table.setFixedHeight(500)
+            self.lessons_info_table.setEditTriggers(TableWidget.NoEditTriggers)
+            add_widget(self.lessons_info_table,self.layout)
 
-            # 保存学科信息
-            new_subjects=[lessons_info.keys()[i][:-5] for i in range(1,len(lessons_info.keys()),2)]
-            subjects_table_keys=["班级"]
-            for subject in new_subjects:
-                subjects_table_keys.append(subject+" - 课时")
-                subjects_table_keys.append(subject+" - 任课老师")
-            cfg.subjects_info.value=new_subjects
+            # 设置每天上午和下午的课程数量
+            self.morning_class_num=RangeSettingCard(cfg.morning_class_num,FluentIcon.FLAG,title="每天上午上课数量",content="学校每天上午的上课数量")
+            self.morning_class_num.valueChanged.connect(self.update_table_preview)
+            add_widget(self.morning_class_num,self.layout,0)
+            self.afternoon_class_num=RangeSettingCard(cfg.afternoon_class_num,FluentIcon.FLAG,title="每天下午上课数量",content="学校每天下午的上课数量")
+            self.afternoon_class_num.valueChanged.connect(self.update_table_preview)
+            add_widget(self.afternoon_class_num,self.layout)
 
             subheader("年级信息",self,self.layout)
 
@@ -479,13 +443,18 @@ class Settings(QFrame):
 
             self.rule_list=ListWidget()
             self.rule_list.setFixedHeight(200)
-            self.rule_list.itemClicked.connect(lambda :self.del_rule_button.setEnabled(True))
+            self.rule_list.itemClicked.connect(lambda:self.del_rule_button.setEnabled(True))
             for rule in rules:
                 item=QListWidgetItem(str(rule))
                 item.setData(Qt.UserRole,rule)
                 self.rule_list.addItem(item)
             add_widget(self.rule_list,self.layout)
 
+            subheader("生成功能设置",self,self.layout)
+            self.reduce_continue_card=SwitchSettingCard(FluentIcon.STOP_WATCH,"减少教师连堂","生成时尽可能避免教师连堂上课",cfg.reduce_continue)
+            add_widget(self.reduce_continue_card,self.layout,0)
+            self.average_subjects_card=SwitchSettingCard(FluentIcon.SPEED_MEDIUM,"平均分配课程","生成时尽量将学科平均分配到每一天（在不违背生成规则的前提下）",cfg.average_subjects)
+            add_widget(self.average_subjects_card,self.layout)
 
             add_widget(SeparatorWidget(orient=Qt.Horizontal),self.layout)
 
@@ -516,6 +485,49 @@ class Settings(QFrame):
             self.activity_table.cellChanged.connect(self.save_activity)
             self.activity_table.clicked.connect(lambda :self.del_activity_button.setEnabled(True))
             add_widget(self.activity_table,self.layout)
+
+            add_widget(SeparatorWidget(orient=Qt.Horizontal),self.layout)
+
+            # 表格样式设置区域
+            biggersubheader("表格样式",self,self.layout)
+
+            self.school_name_card=SettingCard(FluentIcon.INFO,"学校名称","设置学校名称（作为表头）")
+            self.school_name=LineEdit()
+            self.school_name.setText(cfg.school_name.value)
+            add_widget(self.school_name,self.school_name_card.hBoxLayout)
+            self.school_name.textChanged.connect(lambda :self.save_cfg("school_name",self.school_name.text()))
+            add_widget(self.school_name_card,self.layout,0)
+
+            self.lesson_length_group=ExpandGroupSettingCard(FluentIcon.STOP_WATCH,"课程起止时间（显示在课时下方）")
+            add_widget(self.lesson_length_group,self.layout,0)
+
+            # 设置是否显示教师姓名和表格排版方式
+            show_teachers=SwitchSettingCard(configItem=cfg.show_teachers,icon=FluentIcon.TAG,title="显示教师姓名",content="在课程名称下方标注任课教师姓名")
+            show_teachers.checkedChanged.connect(self.update_table_preview)
+            add_widget(show_teachers,self.layout,0)
+
+            text_style=SettingCard(FluentIcon.FONT,"文字样式","设置课程表文字样式")
+            self.font_combo=FontComboBox()
+            self.font_combo.setCurrentText(cfg.text_font.value)
+            self.font_combo.currentTextChanged.connect(lambda :self.save_cfg("text_font",self.font_combo.currentText()))
+            add_widget(self.font_combo,text_style.hBoxLayout)
+
+            self.text_size=SpinBox()
+            self.text_size.setRange(1,100)
+            self.text_size.setValue(cfg.text_size.value)
+            self.text_size.valueChanged.connect(lambda :self.save_cfg("text_size",self.text_size.value()))
+            add_widget(self.text_size,text_style.hBoxLayout)
+            add_widget(text_style,self.layout)
+
+            # 预览课程表
+            subheader("预览",self,self.layout)
+            self.table_style_preview=TableWidget()
+            self.table_style_preview.verticalHeader().setDefaultSectionSize(50)
+            self.table_style_preview.horizontalHeader().setDefaultSectionSize(155)
+            self.table_style_preview.setEditTriggers(TableWidget.NoEditTriggers)
+            add_widget(self.table_style_preview,self.layout)
+
+            self.update_table_preview()
 
             self.scroll_area.setWidget(view)
             main_layout.addWidget(self.scroll_area)

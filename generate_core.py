@@ -1,4 +1,4 @@
-import random,time
+import random,time,math
 from locals import *
 from PySide6.QtCore import QThread,Signal
 
@@ -109,21 +109,22 @@ class GenerateThread(QThread):
                 curr_subjects=list(curr_subjects)
                 random.shuffle(curr_subjects)
 
-                for lesson in range(cfg.morning_class_num.value+cfg.afternoon_class_num.value,0,-1):
-                    lessons=clas.get_lessons(Time(curr_time.day,lesson))
-                    if lessons:
-                        if lessons[0] in curr_subjects:
-                            curr_subjects.remove(lessons[0])
-                            curr_subjects.append(lessons[0])
-                        if len(lessons)>1 and lessons[1] in curr_subjects:
-                            curr_subjects.remove(lessons[1])
-                            curr_subjects.append(lessons[1])
+                if cfg.average_subjects.value:
+                    for lesson in range(cfg.morning_class_num.value+cfg.afternoon_class_num.value,0,-1):
+                        lessons=clas.get_lessons(Time(curr_time.day,lesson))
+                        if lessons:
+                            if lessons[0] in curr_subjects:
+                                curr_subjects.remove(lessons[0])
+                                curr_subjects.append(lessons[0])
+                            if len(lessons)>1 and lessons[1] in curr_subjects:
+                                curr_subjects.remove(lessons[1])
+                                curr_subjects.append(lessons[1])
 
                 for subject in curr_subjects:
-                    if subject.get_teacher(clas).is_busy(curr_time.prev):
+                    if cfg.reduce_continue.value and subject.get_teacher(clas).is_busy(curr_time.prev):
                         curr_subjects.remove(subject)
                         curr_subjects.append(subject)
-                    elif subject in curr_priority or clas.left_subjects.count(subject)>5-curr_time.day+1:
+                    elif cfg.average_subjects.value and (subject in curr_priority or clas.left_subjects.count(subject)>5-curr_time.day+1):
                         curr_subjects.remove(subject)
                         curr_subjects.insert(0,subject)
 

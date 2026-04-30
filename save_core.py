@@ -329,7 +329,7 @@ def save_total_teachers_timetable(filename:str,ext:str):
             ws.merge_cells(start_row=5,start_column=curr_column,end_row=6,end_column=curr_column)
 
             ws.cell(7,curr_column).value=activity
-            ws.merge_cells(start_row=7,start_column=curr_column,end_row=6+len(results.classes),end_column=curr_column)
+            ws.merge_cells(start_row=7,start_column=curr_column,end_row=6+len(results.teachers),end_column=curr_column)
             activity_column+=1
 
         ws.cell(3,start_column).value=days[day]

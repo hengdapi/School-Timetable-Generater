@@ -4,6 +4,7 @@ from style import *
 from generate_core import *
 from save_core import SaveThread
 from PySide6.QtCore import Qt
+from PySide6 import QtGui
 import time
 
 class Generate(QFrame):
@@ -85,6 +86,7 @@ class Generate(QFrame):
         self.timetable_preview.setContextMenuPolicy(Qt.CustomContextMenu)
         self.timetable_preview.customContextMenuRequested.connect(self.select_target)
         add_widget(self.timetable_preview,self.layout,0)
+        curr_item=None
 
         self.exchange_layout=QHBoxLayout()
         self.layout.addLayout(self.exchange_layout)
@@ -145,7 +147,15 @@ class Generate(QFrame):
             if self.preview_mode.currentIndex()!=0:
                 return
             self.target_lesson.clear()
+            self.from_lesson.clear()
             self.exchange_button.setEnabled(False)
+            if self.timetable_preview.currentItem().background()==QColor(255,255,200):
+                for j in range(self.timetable_preview.columnCount()):
+                    for i in range(self.timetable_preview.rowCount()):
+                        item=self.timetable_preview.item(i,j)
+                        item.setBackground(QtGui.QBrush(Qt.NoBrush))
+                        item.setToolTip("")
+                return
             curr_item=self.timetable_preview.currentItem()
             clas=results.classes[self.preview_object.currentText()]
             curr_time=Time(curr_item.column()+1,curr_item.row()+1)
@@ -170,7 +180,7 @@ class Generate(QFrame):
                         item.setBackground(QColor(255,150,150))
                         item.setToolTip("不可交换")
             curr_item.setBackground(QColor(255,255,200))
-            curr_item.setToolTip("当前选中")
+            curr_item.setToolTip("当前选中（再次点击可取消）")
         except:
             e=traceback.format_exc()
             logging.critical(f"点击课程表出错：\n{e}")
@@ -283,11 +293,16 @@ class Generate(QFrame):
             logging.critical(f"生成课程表出错：\n{e}")
 
     def save_timetable(self):
-        # filename,_=QFileDialog.getSaveFileName(self,"保存课程表","","Microsoft Excel 工作表(*.xlsx);;Microsoft Excel 97-2003 工作表(*.xls)")
-        # if not filename:
-        #     return
-        filename="E:/信息科技/Python/自创作品/课程表生成器/1.xlsx"
+        filename,_=QFileDialog.getSaveFileName(self,"保存课程表","","Microsoft Excel 工作表(*.xlsx);;Microsoft Excel 97-2003 工作表(*.xls)")
+        if not filename:
+            return
         logging.info(f"保存课程表文件名：{filename}")
+
+        self.save_infobar=InfoBar(InfoBarIcon.INFORMATION,"正在保存课程表，请稍候...","",parent=self,duration=-1)
+        self.save_progress=IndeterminateProgressBar()
+        self.save_infobar.addWidget(self.save_progress)
+        self.save_infobar.show()
+
         name,ext=os.path.splitext(filename)
         save_thread=SaveThread(name,ext,self)
         save_thread.success.connect(self.on_save_success)
@@ -295,7 +310,9 @@ class Generate(QFrame):
         save_thread.start()
 
     def on_save_success(self):
-        InfoBar.success("课程表保存成功！","",parent=self)
+        self.save_infobar.close()
+        InfoBar.success("课程表保存成功！","",parent=self,duration=-1)
 
     def on_save_error(self,error):
+        self.save_infobar.close()
         InfoBar.error("课程表保存失败！",error,parent=self,duration=-1)
