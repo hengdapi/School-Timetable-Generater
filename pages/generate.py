@@ -86,7 +86,6 @@ class Generate(QFrame):
         self.timetable_preview.setContextMenuPolicy(Qt.CustomContextMenu)
         self.timetable_preview.customContextMenuRequested.connect(self.select_target)
         add_widget(self.timetable_preview,self.layout,0)
-        curr_item=None
 
         self.exchange_layout=QHBoxLayout()
         self.layout.addLayout(self.exchange_layout)

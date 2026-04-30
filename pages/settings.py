@@ -1,11 +1,13 @@
 # coding=utf-8
+import os
+
 from PySide6.QtCore import QTime
 
 from qfluentwidgets.components.date_time.picker_base import SeparatorWidget
 from locals import *
 from style import *
 from wr_settings import *
-
+import shutil
 
 class AddRuleMessageBox(MessageBoxBase):
     def __init__(self,parent=None):
@@ -218,6 +220,13 @@ class Settings(QFrame):
             e=traceback.format_exc()
             logging.error(f"删除规则时出错：\n{e}")
 
+    def show_rules(self):
+        self.rule_list.clear()
+        for rule in rules:
+            item=QListWidgetItem(str(rule))
+            item.setData(Qt.UserRole,rule)
+            self.rule_list.addItem(item)
+
     def lesson_time_changed(self,lesson:int,end:bool,time:QTime):
         cfg.lessons_time.value[str(lesson)][end]=[time.hour(),time.minute()]
         save_settings()
@@ -353,6 +362,21 @@ class Settings(QFrame):
         self.show_grades()
         self.save_grade_lock=False
 
+    def export_settings(self):
+        filename,_=QFileDialog.getSaveFileName(self,"导出设置","","JSON 文件(*.json)")
+        if not filename:
+            return
+        shutil.copy2("settings.json",filename)
+        InfoBar.success("成功导出设置",f"已导出至{filename}",parent=self)
+
+    def import_settings(self):
+        filename,_=QFileDialog.getOpenFileName(self,"导入设置","","JSON 文件(*.json)")
+        if not filename:
+            return
+        shutil.copy2(filename,"settings.json")
+        InfoBar.success("成功导入设置",f"已导入{filename}",parent=self,duration=3000)
+        InfoBar.warning("请重启应用以确保设置生效","",parent=self,duration=-1)
+
     def __init__(self,parent=None):
         try:
             super().__init__(parent=parent)
@@ -371,6 +395,24 @@ class Settings(QFrame):
 
             self.title = title("设置",self,self.layout)
 
+            biggersubheader("导出/导入",self,self.layout)
+            settingio_layout=QHBoxLayout()
+
+            self.export_setting_button=button("导出设置",self,settingio_layout)
+            self.export_setting_button.setFixedSize(130,40)
+            self.export_setting_button.setIcon(FluentIcon.SHARE)
+            self.export_setting_button.clicked.connect(self.export_settings)
+
+            self.import_setting_button=button("导入设置",self,settingio_layout)
+            self.import_setting_button.setFixedSize(130,40)
+            self.import_setting_button.setIcon(FluentIcon.DOWNLOAD)
+            self.import_setting_button.clicked.connect(self.import_settings)
+
+            settingio_layout.addStretch(1)
+            self.layout.addLayout(settingio_layout)
+            self.layout.addSpacing(20)
+
+            add_widget(SeparatorWidget(orient=Qt.Horizontal),self.layout)
             # 课程信息设置区域
             biggersubheader("课程信息",self,self.layout)
 
@@ -444,10 +486,7 @@ class Settings(QFrame):
             self.rule_list=ListWidget()
             self.rule_list.setFixedHeight(200)
             self.rule_list.itemClicked.connect(lambda:self.del_rule_button.setEnabled(True))
-            for rule in rules:
-                item=QListWidgetItem(str(rule))
-                item.setData(Qt.UserRole,rule)
-                self.rule_list.addItem(item)
+            self.show_rules()
             add_widget(self.rule_list,self.layout)
 
             subheader("生成功能设置",self,self.layout)
