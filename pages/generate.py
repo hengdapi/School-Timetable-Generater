@@ -170,7 +170,7 @@ class Generate(QFrame):
                         (len(curr_subjects)==1 and check(clas,time,curr_subjects[0]) or
                         len(curr_subjects)==2 and check(clas,time,curr_subjects[0]) and check(clas,time,curr_subjects[1])) and\
                         subjects[0] not in [lesson[1] for lesson in set_lessons] and curr_subjects[0] not in [lesson[1] for lesson in set_lessons] and\
-                        not subjects[0].continue_lesson and not curr_subjects[0].continue_lesson:
+                        not subjects[0].continuous and not curr_subjects[0].continuous:
                         item.setBackground(QColor(150,255,150))
                         item.setToolTip("右键点击可交换")
                         self.target_lesson.addItem(f"{time} {item.text().split("\n")[0]}",userData=(time,copy.copy(subjects)))

@@ -131,6 +131,7 @@ class GenerateThread(QThread):
                 logging.debug(f"当前课程：{[i.name for i in curr_subjects]}")
 
                 for subject in curr_subjects:
+                    # 单双周
                     if subject in half_subjects and check(clas, curr_time.sin_week, subject):
                         clas.add_lesson(curr_time.sin_week,subject)
                         for subject2 in half_subjects&set(clas.left_subjects):
@@ -145,29 +146,20 @@ class GenerateThread(QThread):
                                         return
                                     clas.remove_lesson(curr_time.dou_week,subject2)
                         clas.remove_lesson(curr_time.sin_week,subject)
+                    # 连堂
                     elif subject not in half_subjects and check(clas, curr_time, subject):
                         add_continue=False
-                        if subject in continue_subjects:
-                            if clas.left_subjects.count(subject)==2 and (curr_time.lesson==cfg.morning_class_num.value+cfg.afternoon_class_num.value or curr_time.lesson==cfg.morning_class_num.value):
-                                continue
-                            if clas.left_subjects.count(subject)==2:
-                                plan=True
-                            elif clas.left_subjects.count(subject)>2:
-                                plan=random.choice([True,False])
+                        if subject in continue_num and subject.continue_times[clas]<continue_num[subject] and clas.left_subjects.count(subject)>=2 and \
+                                curr_time.lesson!=cfg.morning_class_num.value and curr_time.lesson!=cfg.morning_class_num.value+cfg.afternoon_class_num.value:
+                            if check(clas,next_time,subject):
+                                clas.add_lesson(next_time,subject.to_continuous_lesson())
+                                add_continue=True
                             else:
-                                plan=False
-                            if curr_time.lesson==cfg.morning_class_num.value+cfg.afternoon_class_num.value:
-                                plan=False
-                            if plan:
-                                if check(clas,next_time,subject):
-                                    clas.add_lesson(next_time,subject.to_continue_lesson())
-                                    add_continue=True
-                                else:
-                                    continue
+                                continue
                         if add_continue:
-                            clas.add_lesson(curr_time,subject.to_continue_lesson())
+                            clas.add_lesson(curr_time,subject.to_continuous_lesson())
                         else:
-                            clas.add_lesson(curr_time,subject)
+                            clas.add_lesson(curr_time,subject.to_normal_lesson())
                         if not last:
                             if curr_time.day==5 and curr_time.lesson==cfg.morning_class_num.value+cfg.afternoon_class_num.value:
                                 self.dfs(results.class_lst[results.class_names.index(clas.name)+1],Time(1,1))
@@ -175,9 +167,11 @@ class GenerateThread(QThread):
                                 self.dfs(clas,next_time)
                             if self.finish:
                                 return
-                            clas.remove_lesson(curr_time,subject)
                             if add_continue:
-                                clas.remove_lesson(next_time,subject)
+                                clas.remove_lesson(curr_time,subject.to_continuous_lesson())
+                                clas.remove_lesson(next_time,subject.to_continuous_lesson())
+                            else:
+                                clas.remove_lesson(curr_time,subject.to_normal_lesson())
             else:
                 logging.debug(f"{curr_time}已存在课程")
                 if not last:

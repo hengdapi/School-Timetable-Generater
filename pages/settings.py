@@ -1,6 +1,4 @@
 # coding=utf-8
-import os
-
 from PySide6.QtCore import QTime
 
 from qfluentwidgets.components.date_time.picker_base import SeparatorWidget
@@ -15,7 +13,6 @@ class AddRuleMessageBox(MessageBoxBase):
         self.yesButton.setText("添加规则")
         self.cancelButton.setText("取消")
         subheader("添加规则",self,self.viewLayout)
-        rule_types=cfg.rule_types.value
         self.times=[day+lesson_to_str(lesson) for day in days[1:] for lesson in range(1,cfg.morning_class_num.value+cfg.afternoon_class_num.value+1)]
         self.string_elements={}
         self.string_layouts=[]

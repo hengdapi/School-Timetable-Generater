@@ -21,7 +21,6 @@ class Settings(QConfig):
 
     activity_info=ConfigItem("activity_info","activity_info",{})
 
-    rule_types=ConfigItem("rules","rule_types",{})
     rules=ConfigItem("rules","rules",{})
     reduce_continue=OptionsConfigItem("rules","reduce_continue",True,BoolValidator())
     average_subjects=OptionsConfigItem("rules","average_subjects",True,BoolValidator())

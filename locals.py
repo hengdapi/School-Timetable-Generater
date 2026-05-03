@@ -239,12 +239,13 @@ class Subject:
         """
         self.name = name
         self.teachers = teachers
-        self.continue_lesson=False
+        self.continuous=False
+        self.continue_times:dict[Class,int]={}
         self.time_list:dict[Time,int]={Time(day,lesson):0 for day in range(1,6) for lesson in range(1,cfg.morning_class_num.value+cfg.afternoon_class_num.value+1)}
         self.timetable:dict[Time,list[Class]]={}
 
     def __str__(self):
-        if self.continue_lesson:
+        if self.continuous:
             return f"【连】{self.name}"
         return self.name
 
@@ -273,14 +274,14 @@ class Subject:
         self.time_list[time]-=1
         self.timetable[time].remove(clas)
 
-    def to_continue_lesson(self):
+    def to_continuous_lesson(self):
         subject2=copy.copy(self)
-        subject2.continue_lesson=True
+        subject2.continuous=True
         return subject2
 
     def to_normal_lesson(self):
         subject2=copy.copy(self)
-        subject2.continue_lesson=False
+        subject2.continuous=False
         return subject2
 
 class Class:
@@ -299,6 +300,9 @@ class Class:
     def __str__(self):
         return self.name
 
+    def __hash__(self):
+        return hash(self.name)
+
     def get_teacher(self,subject:Subject):
         return self.teachers[subject.name]
 
@@ -313,6 +317,10 @@ class Class:
             self.timetable[time].append(subject)
         else:
             self.timetable[time]=[subject]
+        if subject.continuous:
+            if self not in results.subjects[subject.name].continue_times:
+                results.subjects[subject.name].continue_times[self]=0
+            results.subjects[subject.name].continue_times[self]+=0.5
         subject.add_lesson(self,time)
         self.left_subjects.remove(subject)
 
@@ -323,6 +331,8 @@ class Class:
             self.get_teacher(subject).remove_lesson(time)
             time=time.all_week
             self.timetable[time].remove(subject)
+            if subject.continuous:
+                results.subjects[subject.name].continue_times[self]-=0.5
             subject.remove_lesson(self,time)
             self.left_subjects.append(subject)
 
@@ -363,7 +373,7 @@ class Rule:
             self.time=Time(string=kwargs["time"])
         if self.type in [Rule_type.set_time,Rule_type.avoid_time,Rule_type.priority_time,Rule_type.set_num,Rule_type.set_continue,Rule_type.half_num]:
             self.subject=results.subjects.get(kwargs["subject"])
-        if self.type in [Rule_type.set_num]:
+        if self.type in [Rule_type.set_num,Rule_type.set_continue]:
             self.number=kwargs["number"]
         if self.type==Rule_type.avoid_subject:
             self.subjectA=results.subjects.get(kwargs["subjectA"])
@@ -373,7 +383,7 @@ class Rule:
             self.teacherB=results.teachers.get(kwargs["teacherB"])
 
     def __str__(self):
-        ans=cfg.rule_types.value[self.type].replace("|","").replace("{"," ").replace("}"," ")
+        ans=rule_types[self.type].replace("|","").replace("{"," ").replace("}"," ")
         for string in self.__dict__:
             if string=="type":
                 continue
@@ -418,12 +428,25 @@ class Results:
                     for i in range(int(clas[subject+" - 课时"])):
                         self.classes[class_name].left_subjects.append(self.subjects[subject])
                     self.classes[class_name].teachers[subject]=self.teachers[clas[subject+" - 任课老师"]]
+        for subject in self.subjects.values():
+            subject.continue_times={clas:0 for clas in self.class_lst}
 results=Results()
+
+rule_types={
+    "set_time": "{subject}|学科必须排在|{time}",
+    "avoid_time": "{subject}|学科不能排在|{time}",
+    "priority_time": "{subject}|学科优先排在|{time}",
+    "set_num": "{subject}|学科同一时间最多排|{number}|节课",
+    "avoid_subject": "{subjectA}|学科与|{subjectB}|学科不能排在同一时间",
+    "avoid_teacher": "{teacherA}|老师与|{teacherB}|老师不能在同一时间有课",
+    "set_continue": "{subject}|学科每周连堂|{number}|次",
+    "half_num": "{subject}|学科两周排一次课（即单双周）"
+}
 
 rules:list[Rule]=[]
 priority_subjects:dict[Time,list[Subject]]={}
 half_subjects:set[Subject]=set()
-continue_subjects:set[Subject]=set()
+continue_num:dict[Subject,int]={}
 set_lessons:list[tuple[Time,Subject]]=[]
 for rule in cfg.rules.value:
     rule=Rule(**rule)
@@ -438,5 +461,5 @@ for rule in cfg.rules.value:
     elif rule.type==Rule_type.half_num:
         half_subjects.add(rule.subject)
     elif rule.type==Rule_type.set_continue:
-        continue_subjects.add(rule.subject)
+        continue_num[rule.subject]=int(rule.number)
 logging.info("课程信息解析完毕，生成初始化完成")
