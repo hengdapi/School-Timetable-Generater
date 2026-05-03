@@ -46,7 +46,7 @@ teachers:dict[str,set[str]]={}
 for grade in grades:
     teachers[grade]=set()
     for class_name in cfg.grades_info.value[grade]:
-        clas=results.classes[class_name]
+        clas=lesson_info.classes[class_name]
         teachers[grade]|={teacher.name for teacher in clas.teachers.values()}
 
 def column_letter(index):
@@ -87,7 +87,7 @@ def save_grades_timetable(filename:str,ext:str):
                 ws.cell(start_row+2+lesson,2).border=border
                 ws.cell(start_row+2+lesson,2).value=f"{lesson}节\n%02d:%02d~%02d:%02d"%(cfg.lessons_time.value[str(lesson)][0][0],cfg.lessons_time.value[str(lesson)][0][1],cfg.lessons_time.value[str(lesson)][1][0],cfg.lessons_time.value[str(lesson)][1][1])
 
-            timetable=results.classes[class_name].timetable_dataframe
+            timetable=lesson_info.classes[class_name].timetable_dataframe
             for day in range(1,6):
                 col=day+2
                 for lesson in range(1,lesson_num+1):
@@ -159,7 +159,7 @@ def save_total_grades_timetable(filename:str,ext:str):
             for i in range(len(classes)):
                 class_name=classes[i]
                 ws.cell(start_row+i,2).value=class_name
-                clas=results.classes[class_name]
+                clas=lesson_info.classes[class_name]
                 timetable=clas.timetable_dataframe
 
                 for lesson in range(1,lesson_num+activity_num+1):
@@ -184,7 +184,7 @@ def save_total_grades_timetable(filename:str,ext:str):
             ws.merge_cells(start_row=5,start_column=curr_column,end_row=6,end_column=curr_column)
 
             ws.cell(7,curr_column).value=activity
-            ws.merge_cells(start_row=7,start_column=curr_column,end_row=6+len(results.classes),end_column=curr_column)
+            ws.merge_cells(start_row=7,start_column=curr_column,end_row=6+len(lesson_info.classes),end_column=curr_column)
             activity_column+=1
 
         ws.cell(3,start_column).value=days[day]
@@ -217,7 +217,7 @@ def save_teachers_timetable(filename:str,ext:str):
         ws.column_dimensions["C"].width=ws.column_dimensions["D"].width=ws.column_dimensions["E"].width=ws.column_dimensions["F"].width=ws.column_dimensions["G"].width=cfg.text_size.value*1.5
         start_row=1
         for teacher_name in teachers[grade]:
-            teacher=results.teachers[teacher_name]
+            teacher=lesson_info.teachers[teacher_name]
             ws.cell(start_row,1).value=cfg.school_name.value
             ws.cell(start_row,1).font=title_font
             ws.cell(start_row,1).border=border
@@ -301,7 +301,7 @@ def save_total_teachers_timetable(filename:str,ext:str):
     for day in range(1,6):
         start_row=7
         start_column=(day-1)*(lesson_num+activity_num)+2
-        teachers=list(results.teachers.values())
+        teachers=list(lesson_info.teachers.values())
         for i in range(len(teachers)):
             teacher=teachers[i]
             ws.cell(start_row+i,1).value=teacher.name
@@ -329,7 +329,7 @@ def save_total_teachers_timetable(filename:str,ext:str):
             ws.merge_cells(start_row=5,start_column=curr_column,end_row=6,end_column=curr_column)
 
             ws.cell(7,curr_column).value=activity
-            ws.merge_cells(start_row=7,start_column=curr_column,end_row=6+len(results.teachers),end_column=curr_column)
+            ws.merge_cells(start_row=7,start_column=curr_column,end_row=6+len(lesson_info.teachers),end_column=curr_column)
             activity_column+=1
 
         ws.cell(3,start_column).value=days[day]

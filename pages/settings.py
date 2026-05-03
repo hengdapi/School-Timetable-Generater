@@ -7,27 +7,42 @@ from style import *
 from wr_settings import *
 import shutil
 
-class AddRuleMessageBox(MessageBoxBase):
-    def __init__(self,parent=None):
+class RuleMessageBox(MessageBoxBase):
+    def __init__(self,parent=None,edit=False,rule:Rule=None):
         super().__init__(parent)
-        self.yesButton.setText("添加规则")
+        self.curr_rule=rule
+        self.edit=edit
+        if edit:
+            self.yesButton.setText("编辑规则")
+            subheader("编辑规则",self,self.viewLayout)
+        else:
+            self.yesButton.setText("添加规则")
+            subheader("添加规则",self,self.viewLayout)
         self.cancelButton.setText("取消")
-        subheader("添加规则",self,self.viewLayout)
         self.times=[day+lesson_to_str(lesson) for day in days[1:] for lesson in range(1,cfg.morning_class_num.value+cfg.afternoon_class_num.value+1)]
         self.string_elements={}
         self.string_layouts=[]
 
         self.rule_combo=ComboBox()
         self.rule_combo.setPlaceholderText("请选择规则类型")
-        for kind,name in rule_types.items():
-            self.rule_combo.addItem(name.replace("|",""),userData=[name,kind])
-        self.rule_combo.setCurrentIndex(-1)
+        for type,name in rule_types.items():
+            self.rule_combo.addItem(name.replace("|",""),userData=[name,type])
         add_widget(self.rule_combo,self.viewLayout,0)
+        if edit:
+            self.rule_combo.setCurrentText(rule_types[rule.type].replace("|",""))
+            self.show_rule_strings()
+        else:
+            self.rule_combo.setCurrentIndex(-1)
         self.rule_combo.currentIndexChanged.connect(self.show_rule_strings)
 
     def check_rule(self,new_rule:Rule):
         new_type=new_rule.type
-        if new_rule in rules:
+        rules=lesson_info.rules
+        if self.edit:
+            rules.remove(self.curr_rule)
+        if new_rule==self.curr_rule:
+            return True,None
+        if not self.edit and new_rule in rules:
             return False,new_rule
         if new_type in [Rule_type.set_time,Rule_type.avoid_time]:
             for rule in rules:
@@ -95,6 +110,8 @@ class AddRuleMessageBox(MessageBoxBase):
                 else:
                     items=["无可选项"]
                 combo.addItems(items)
+                if self.curr_rule:
+                    combo.setCurrentText(getattr(self.curr_rule,string_name))
                 completer=QCompleter(items,combo)
                 combo.setCompleter(completer)
                 add_widget(combo,string_layout)
@@ -193,24 +210,41 @@ class Settings(QFrame):
             if cfg.lessons_info.value!="":
                 cfg.lessons_info.value=pd.DataFrame(cfg.lessons_info.value).to_json(orient="records", lines=False, force_ascii=False)
 
+    def enable_rule_button(self):
+        self.edit_rule_button.setEnabled(True)
+        self.del_rule_button.setEnabled(True)
 
     def add_rule(self):
-        rule_dialog=AddRuleMessageBox(self.parent().parent().parent())
+        rule_dialog=RuleMessageBox(self.parent().parent().parent())
         if rule_dialog.exec():
             new_rule=rule_dialog.new_rule
-            rules.append(new_rule)
+            lesson_info.rules.append(new_rule)
             item=QListWidgetItem(str(new_rule))
             item.setData(Qt.UserRole,new_rule)
             self.rule_list.addItem(item)
             cfg.rules.value.append(new_rule.to_dict())
             save_settings()
 
+    def edit_rule(self):
+        curr_item=self.rule_list.selectedItems()[0]
+        curr_rule=curr_item.data(Qt.UserRole)
+        rule_dialog=RuleMessageBox(self.parent().parent().parent(),True,curr_rule)
+        if rule_dialog.exec():
+            new_rule=rule_dialog.new_rule
+            lesson_info.rules.append(new_rule)
+            curr_item.setText(str(new_rule))
+            curr_item.setData(Qt.UserRole,new_rule)
+            cfg.rules.value.remove(curr_rule.to_dict())
+            cfg.rules.value.append(new_rule.to_dict())
+            save_settings()
+
     def del_rule(self):
         try:
             selected_rule=self.rule_list.selectedItems()[0]
-            rules.remove(selected_rule.data(Qt.UserRole))
+            lesson_info.rules.remove(selected_rule.data(Qt.UserRole))
             self.rule_list.takeItem(self.rule_list.row(selected_rule))
-            self.del_rule_button.setEnabled(bool(len(rules)))
+            self.del_rule_button.setEnabled(bool(len(lesson_info.rules)))
+            self.edit_rule_button.setEnabled(bool(len(lesson_info.rules)))
             cfg.rules.value.remove(selected_rule.data(Qt.UserRole).to_dict())
             save_settings()
         except:
@@ -219,7 +253,7 @@ class Settings(QFrame):
 
     def show_rules(self):
         self.rule_list.clear()
-        for rule in rules:
+        for rule in lesson_info.rules:
             item=QListWidgetItem(str(rule))
             item.setData(Qt.UserRole,rule)
             self.rule_list.addItem(item)
@@ -303,11 +337,11 @@ class Settings(QFrame):
         self.grade_table.setRowCount(len(cfg.grades_info.value))
         self.grade_table.setFixedHeight(min(300,len(cfg.grades_info.value)*40+40))
         r=0
-        left_classes=set(results.class_names)
+        left_classes=set(lesson_info.class_names)
         for classes in cfg.grades_info.value.values():
             left_classes-=set(classes)
         left_classes=list(left_classes)
-        left_classes.sort(key=lambda clas:results.class_names.index(clas))
+        left_classes.sort(key=lambda clas:lesson_info.class_names.index(clas))
         for grade,classes in cfg.grades_info.value.items():
             item=QTableWidgetItem(grade)
             item.setTextAlignment(Qt.AlignCenter)
@@ -473,6 +507,12 @@ class Settings(QFrame):
             self.add_rule_button.setFixedWidth(200)
             self.add_rule_button.clicked.connect(self.add_rule)
 
+            self.edit_rule_button=button("编辑规则",self,rule_list_layout,0)
+            self.edit_rule_button.setEnabled(False)
+            self.edit_rule_button.setIcon(FluentIcon.EDIT)
+            self.edit_rule_button.setFixedWidth(200)
+            self.edit_rule_button.clicked.connect(self.edit_rule)
+
             self.del_rule_button=button("删除规则",self,rule_list_layout)
             self.del_rule_button.setEnabled(False)
             self.del_rule_button.setIcon(FluentIcon.REMOVE)
@@ -482,7 +522,7 @@ class Settings(QFrame):
 
             self.rule_list=ListWidget()
             self.rule_list.setFixedHeight(200)
-            self.rule_list.itemClicked.connect(lambda:self.del_rule_button.setEnabled(True))
+            self.rule_list.itemClicked.connect(self.enable_rule_button)
             self.show_rules()
             add_widget(self.rule_list,self.layout)
 

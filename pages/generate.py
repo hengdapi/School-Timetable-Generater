@@ -74,8 +74,8 @@ class Generate(QFrame):
         add_widget(self.preview_mode,self.preview_layout)
 
         self.preview_object=EditableComboBox(self)
-        self.preview_object.addItems(results.class_names)
-        self.preview_object.setCompleter(QCompleter(results.class_names,self.preview_object))
+        self.preview_object.addItems(lesson_info.class_names)
+        self.preview_object.setCompleter(QCompleter(lesson_info.class_names,self.preview_object))
         self.preview_object.currentIndexChanged.connect(self.show_timetable)
         add_widget(self.preview_object,self.preview_layout,0)
 
@@ -127,7 +127,7 @@ class Generate(QFrame):
             self.generate_button.setEnabled(False)
             self.progress_bar.show()
             self.progress_bar.setValue(0)
-            self.progress_bar.setMaximum(len(results.class_names))
+            self.progress_bar.setMaximum(len(lesson_info.class_names))
             self.log_label.show()
             self.hide_widgets()
 
@@ -156,7 +156,7 @@ class Generate(QFrame):
                         item.setToolTip("")
                 return
             curr_item=self.timetable_preview.currentItem()
-            clas=results.classes[self.preview_object.currentText()]
+            clas=lesson_info.classes[self.preview_object.currentText()]
             curr_time=Time(curr_item.column()+1,curr_item.row()+1)
             curr_subjects=clas.get_lessons(curr_time)
             self.from_lesson.setText(f"{curr_time} {curr_item.text().split("\n")[0]}")
@@ -187,7 +187,7 @@ class Generate(QFrame):
     def exchange_lesson(self):
         try:
             curr_item=self.timetable_preview.currentItem()
-            clas=results.classes[self.preview_object.currentText()]
+            clas=lesson_info.classes[self.preview_object.currentText()]
             curr_time=Time(curr_item.column()+1,curr_item.row()+1)
             curr_subjects=copy.copy(clas.get_lessons(curr_time))
             target_time,target_subjects=self.target_lesson.currentData()
@@ -219,10 +219,10 @@ class Generate(QFrame):
     def change_mode(self):
         self.preview_object.clear()
         if self.preview_mode.currentIndex()==0:
-            items=results.class_names
+            items=lesson_info.class_names
             self.preview_object.setEnabled(True)
         elif self.preview_mode.currentIndex()==1:
-            items=list(results.teachers.keys())
+            items=list(lesson_info.teachers.keys())
             self.preview_object.setEnabled(True)
         elif self.preview_mode.currentIndex()==2:
             items=[]
@@ -241,13 +241,13 @@ class Generate(QFrame):
         self.exchange_button.setEnabled(False)
         self.timetable_preview.clear()
         if self.preview_mode.currentIndex()==0:
-            display_df_in_table(self.timetable_preview,results.classes[self.preview_object.currentText()].timetable_dataframe)
+            display_df_in_table(self.timetable_preview,lesson_info.classes[self.preview_object.currentText()].timetable_dataframe)
             self.exchange_label.show()
             self.from_lesson.show()
             self.target_lesson.show()
             self.exchange_button.show()
         elif self.preview_mode.currentIndex()==1:
-            display_df_in_table(self.timetable_preview,results.teachers[self.preview_object.currentText()].timetable_dataframe)
+            display_df_in_table(self.timetable_preview,lesson_info.teachers[self.preview_object.currentText()].timetable_dataframe)
             self.exchange_label.hide()
             self.from_lesson.hide()
             self.target_lesson.hide()
@@ -284,9 +284,9 @@ class Generate(QFrame):
     def on_progress_update(self,progress:tuple[Class,Time]):
         try:
             used_time=round(time.time()-self.generate_start_time)
-            percentage=round(results.class_names.index(progress[0].name)/len(results.class_names)*100)
+            percentage=round(lesson_info.class_names.index(progress[0].name)/len(lesson_info.class_names)*100)
             self.log_label.setText(f"当前进度：{percentage}%%，班级：{progress[0].name}，课时：{progress[1]}，已用时间：%02d:%02d"%(used_time//60,used_time%60))
-            self.progress_bar.setValue(results.class_names.index(progress[0].name))
+            self.progress_bar.setValue(lesson_info.class_names.index(progress[0].name))
         except:
             e=traceback.format_exc()
             logging.critical(f"生成课程表出错：\n{e}")

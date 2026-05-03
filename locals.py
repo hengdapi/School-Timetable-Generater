@@ -73,7 +73,7 @@ def table_style(content=None)->pd.DataFrame:
 
 def class_total_dataframe()->pd.DataFrame:
     data={}
-    for clas in results.class_lst:
+    for clas in lesson_info.class_lst:
         data[clas.name]={}
         timetable=clas.timetable_dataframe.to_dict()
         for day,lessons in timetable.items():
@@ -83,7 +83,7 @@ def class_total_dataframe()->pd.DataFrame:
 
 def teacher_total_dataframe()->pd.DataFrame:
     data={}
-    for teacher in results.teachers.values():
+    for teacher in lesson_info.teachers.values():
         data[teacher.name]={}
         timetable=teacher.timetable_dataframe.to_dict()
         for day,lessons in timetable.items():
@@ -318,9 +318,9 @@ class Class:
         else:
             self.timetable[time]=[subject]
         if subject.continuous:
-            if self not in results.subjects[subject.name].continue_times:
-                results.subjects[subject.name].continue_times[self]=0
-            results.subjects[subject.name].continue_times[self]+=0.5
+            if self not in lesson_info.subjects[subject.name].continue_times:
+                lesson_info.subjects[subject.name].continue_times[self]=0
+            lesson_info.subjects[subject.name].continue_times[self]+=0.5
         subject.add_lesson(self,time)
         self.left_subjects.remove(subject)
 
@@ -332,7 +332,7 @@ class Class:
             time=time.all_week
             self.timetable[time].remove(subject)
             if subject.continuous:
-                results.subjects[subject.name].continue_times[self]-=0.5
+                lesson_info.subjects[subject.name].continue_times[self]-=0.5
             subject.remove_lesson(self,time)
             self.left_subjects.append(subject)
 
@@ -372,15 +372,15 @@ class Rule:
         if self.type in [Rule_type.set_time,Rule_type.avoid_time,Rule_type.priority_time]:
             self.time=Time(string=kwargs["time"])
         if self.type in [Rule_type.set_time,Rule_type.avoid_time,Rule_type.priority_time,Rule_type.set_num,Rule_type.set_continue,Rule_type.half_num]:
-            self.subject=results.subjects.get(kwargs["subject"])
+            self.subject=lesson_info.subjects.get(kwargs["subject"])
         if self.type in [Rule_type.set_num,Rule_type.set_continue]:
             self.number=kwargs["number"]
         if self.type==Rule_type.avoid_subject:
-            self.subjectA=results.subjects.get(kwargs["subjectA"])
-            self.subjectB=results.subjects.get(kwargs["subjectB"])
+            self.subjectA=lesson_info.subjects.get(kwargs["subjectA"])
+            self.subjectB=lesson_info.subjects.get(kwargs["subjectB"])
         if self.type==Rule_type.avoid_teacher:
-            self.teacherA=results.teachers.get(kwargs["teacherA"])
-            self.teacherB=results.teachers.get(kwargs["teacherB"])
+            self.teacherA=lesson_info.teachers.get(kwargs["teacherA"])
+            self.teacherB=lesson_info.teachers.get(kwargs["teacherB"])
 
     def __str__(self):
         ans=rule_types[self.type].replace("|","").replace("{"," ").replace("}"," ")
@@ -397,13 +397,15 @@ class Rule:
         return ans
 
     def __eq__(self, other):
+        if not isinstance(other,Rule):
+            return False
         return self.type==other.type and self.__dict__==other.__dict__
 
     def __hash__(self):
         return hash(self.__dict__)
 
 # 解析课程信息
-class Results:
+class LessonInfo:
     def __init__(self):
         self.teachers: dict[str,Teacher]={}
         self.subjects: dict[str,Subject]={}
@@ -430,7 +432,26 @@ class Results:
                     self.classes[class_name].teachers[subject]=self.teachers[clas[subject+" - 任课老师"]]
         for subject in self.subjects.values():
             subject.continue_times={clas:0 for clas in self.class_lst}
-results=Results()
+
+    @property
+    def rules(self):
+        rules: list[Rule]=[]
+        for rule in cfg.rules.value:
+            rule=Rule(**rule)
+            rules.append(rule)
+            if rule.type==Rule_type.set_time:
+                set_lessons.append((rule.time,rule.subject))
+            elif rule.type==Rule_type.priority_time:
+                if rule.time not in priority_subjects:
+                    priority_subjects[rule.time]=[rule.subject]
+                else:
+                    priority_subjects[rule.time].append(rule.subject)
+            elif rule.type==Rule_type.half_num:
+                half_subjects.add(rule.subject)
+            elif rule.type==Rule_type.set_continue:
+                continue_num[rule.subject]=int(rule.number)
+        return rules
+lesson_info=LessonInfo()
 
 rule_types={
     "set_time": "{subject}|学科必须排在|{time}",
@@ -443,23 +464,8 @@ rule_types={
     "half_num": "{subject}|学科两周排一次课（即单双周）"
 }
 
-rules:list[Rule]=[]
 priority_subjects:dict[Time,list[Subject]]={}
 half_subjects:set[Subject]=set()
 continue_num:dict[Subject,int]={}
 set_lessons:list[tuple[Time,Subject]]=[]
-for rule in cfg.rules.value:
-    rule=Rule(**rule)
-    rules.append(rule)
-    if rule.type==Rule_type.set_time:
-        set_lessons.append((rule.time,rule.subject))
-    elif rule.type==Rule_type.priority_time:
-        if rule.time not in priority_subjects:
-            priority_subjects[rule.time]=[rule.subject]
-        else:
-            priority_subjects[rule.time].append(rule.subject)
-    elif rule.type==Rule_type.half_num:
-        half_subjects.add(rule.subject)
-    elif rule.type==Rule_type.set_continue:
-        continue_num[rule.subject]=int(rule.number)
 logging.info("课程信息解析完毕，生成初始化完成")

@@ -9,7 +9,7 @@ def check(clas: Class,time: Time,subject: Subject) -> bool:
         if subject.get_teacher(clas).is_busy(time):
             failed_reason=f"{subject} 的任课老师 {subject.get_teacher(clas).name} 在 {time} 有课"
 
-        for rule in rules:
+        for rule in lesson_info.rules:
             # 不能排在指定时间
             if rule.type==Rule_type.avoid_time:
                 # 支持只写节次（如"上午第4节"）
@@ -56,18 +56,18 @@ class GenerateThread(QThread):
     def run(self):
         # 执行耗时的课程表生成逻辑
         try:
-            results.__init__()
+            lesson_info.__init__()
             logging.info("开始生成课程表...")
             # 1. 固定时间优先分配
             logging.debug("填充固定时间")
             for lesson in set_lessons:
-                for clas in results.class_lst:
+                for clas in lesson_info.class_lst:
                     clas.add_lesson(lesson[0],lesson[1])
 
             # 2. 自动分配剩余课程
             logging.debug("开始dfs分配剩余课程")
             self.finish=False
-            self.dfs(results.class_lst[0],Time(1,1))
+            self.dfs(lesson_info.class_lst[0],Time(1,1))
         except:
             e=traceback.format_exc()
             logging.critical(f"生成课程表时错误：\n{e}")
@@ -90,7 +90,7 @@ class GenerateThread(QThread):
                 self.progress_signal.emit((clas,curr_time))
             last=False
             if curr_time.day==5 and curr_time.lesson==cfg.morning_class_num.value+cfg.afternoon_class_num.value:
-                if results.class_names[-1]==clas.name:
+                if lesson_info.class_names[-1]==clas.name:
                     last=True
 
             next_time=curr_time.next
@@ -139,7 +139,7 @@ class GenerateThread(QThread):
                                 clas.add_lesson(curr_time.dou_week,subject2)
                                 if not last:
                                     if curr_time.day==5 and curr_time.lesson==cfg.morning_class_num.value+cfg.afternoon_class_num.value:
-                                        self.dfs(results.class_lst[results.class_names.index(clas.name)+1],Time(1,1))
+                                        self.dfs(lesson_info.class_lst[lesson_info.class_names.index(clas.name)+1],Time(1,1))
                                     else:
                                         self.dfs(clas,next_time)
                                     if self.finish:
@@ -162,7 +162,7 @@ class GenerateThread(QThread):
                             clas.add_lesson(curr_time,subject.to_normal_lesson())
                         if not last:
                             if curr_time.day==5 and curr_time.lesson==cfg.morning_class_num.value+cfg.afternoon_class_num.value:
-                                self.dfs(results.class_lst[results.class_names.index(clas.name)+1],Time(1,1))
+                                self.dfs(lesson_info.class_lst[lesson_info.class_names.index(clas.name)+1],Time(1,1))
                             else:
                                 self.dfs(clas,next_time)
                             if self.finish:
@@ -176,7 +176,7 @@ class GenerateThread(QThread):
                 logging.debug(f"{curr_time}已存在课程")
                 if not last:
                     if curr_time.day==5 and curr_time.lesson==cfg.morning_class_num.value+cfg.afternoon_class_num.value:
-                        self.dfs(results.class_lst[results.class_names.index(clas.name)+1],Time(1,1))
+                        self.dfs(lesson_info.class_lst[lesson_info.class_names.index(clas.name)+1],Time(1,1))
                     else:
                         self.dfs(clas,next_time)
             if last and bool(clas.get_lessons(curr_time)):
